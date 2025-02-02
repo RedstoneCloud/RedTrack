@@ -26,3 +26,9 @@ body {
   height: 100%;
   max-height: 550px;
 }
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+  }
+}

@@ -75,12 +75,19 @@ export default {
     './node_modules/@heroui/theme/dist/components/(*).js'
   ],
   theme: {
-    extend: {
-      colors: colors
-    },
+  	extend: {
+  		colors: {},
+  		borderRadius: {
+  			lg: 'var(--radius)',
+  			md: 'calc(var(--radius) - 2px)',
+  			sm: 'calc(var(--radius) - 4px)'
+  		}
+  	}
   },
-  darkMode: "class",
+  darkMode: ["class", 'class'],
   plugins: [heroui({
     addCommonColors: true
-  })],
+  }),
+      require("tailwindcss-animate")
+],
 } satisfies Config;

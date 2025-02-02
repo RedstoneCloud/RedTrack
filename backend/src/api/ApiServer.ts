@@ -2,6 +2,7 @@ import express from 'express';
 import { Request, Response } from 'express';
 import fs from 'fs';
 import cors from 'cors';
+import Sessions from "../models/Sessions";
 
 const app = express();
 const port = 3001;
@@ -32,12 +33,26 @@ app.listen(port, () => {
 
 async function requiresAuth(req : Request, res : Response, next : Function) {
   if(!req.headers.authorization) {
-    return res.status(401).send({ message: 'Unauthorized' });
+    res.status(401).send({ message: 'Unauthorized - no auth header' });
+    return;
   }
 
-  if(req.headers.authorization.split(' ')[0] !== 'Bearer')
-    return res.status(401).send({ message: 'Unauthorized' });
+  if(req.headers.authorization.split(' ')[0] !== 'Bearer') {
+    res.status(401).send({message: 'Unauthorized - invalid auth header'});
+    return;
+  }
 
   let sessionToken = req.headers.authorization.split(' ')[1];
 
+  let session = await Sessions.findOne({ token: sessionToken, /*expiresAt: { $gt: new Date() }*/ }); //TODO: add expiresAt check
+    if(!session) {
+        res.status(401).send({ message: 'Unauthorized' });
+        return
+    }
+
+    next();
+
 }
+
+export default app;
+export { requiresAuth }

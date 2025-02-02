@@ -24,7 +24,7 @@ router.post('/startSession', async (req: Request, res: Response) => {
 
         await session.save();
 
-        res.status(200).send({success: true, sessionId: session._id});
+        res.status(200).send({success: true, sessionId: session.token});
     } else {
         res.status(400).send({message: "Password incorrect"});
     }

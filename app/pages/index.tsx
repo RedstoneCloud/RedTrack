@@ -12,39 +12,54 @@ export default function Home() {
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const data = new FormData(form);
-    const url = data.get("url") as string;
-    const response = await fetch(url + "/api/auth/startSession", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: data.get("username"),
-        password: data.get("password")
-      }),
-    });
-    const json = await response.json();
-    console.log(json);
-    if (json.success) {
-      let servers = localStorage.getItem("servers") ? JSON.parse(localStorage?.getItem("servers") || "[]") : [];
-      servers.push({
-        url: url,
-        token: json.sessionId
-      });
-      localStorage.setItem("servers", JSON.stringify(servers));
-      setServers(servers);
-      setPage(0);
-    } else {
-      setLoginError(json.message);
+    try {
+        e.preventDefault();
+        setSubmitting(true)
+        const form = e.currentTarget;
+        const data = new FormData(form);
+        const url = data.get("url") as string;
+        const response = await fetch(url + "/api/auth/startSession", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                name: data.get("username"),
+                password: data.get("password")
+            }),
+        });
+
+        setSubmitting(false)
+
+        if(!response.ok) {
+            setLoginError(response.statusText + " - " + response.status);
+            return;
+        }
+
+        const json = await response.json();
+        console.log(json);
+        if (json.success) {
+            let servers = localStorage.getItem("servers") ? JSON.parse(localStorage?.getItem("servers") || "[]") : [];
+            servers.push({
+                url: url,
+                token: json.sessionId
+            });
+            localStorage.setItem("servers", JSON.stringify(servers));
+            setServers(servers);
+            setPage(0);
+        } else {
+            setLoginError(json.message);
+        }
+    } catch (error : any) {
+        setSubmitting(false)
+        setLoginError(error.message);
     }
   }
 
   let [page, setPage] = useState(0);
   let [servers, setServers] = useState([]);
-  let [loginError, setLoginError] = useState(null);
+  let [loginError, setLoginError] = useState("");
+  let [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     setServers(localStorage.getItem("servers") ? JSON.parse(localStorage?.getItem("servers") || "[]") : []);
@@ -101,6 +116,7 @@ export default function Home() {
             <CardBody>
               <Form
                 onSubmit={handleSubmit}
+                id={"addform"}
                 validationBehavior="native"
                 className="flex flex-col py-2"
               >
@@ -114,6 +130,7 @@ export default function Home() {
                   placeholder="http://localhost:3000"
                   errorMessage="Please enter a valid backend address"
                   labelPlacement="outside"
+                  disabled={submitting}
                   className="border-25 border-black" />
 
                 <div className='flex justify-between gap-2'>
@@ -124,6 +141,7 @@ export default function Home() {
                     placeholder="admin"
                     errorMessage="Please enter a username"
                     labelPlacement="outside"
+                    disabled={submitting}
                     className="border-25 border-black" />
 
                   <Input
@@ -133,16 +151,17 @@ export default function Home() {
                     placeholder="changeme"
                     errorMessage="Please enter a password"
                     labelPlacement="outside"
+                    disabled={submitting}
                     className="border-25 border-black" />
                 </div>
               </Form>
             </CardBody>
             <CardFooter className='flex justify-between gap-2'>
-              <Button type="submit" variant="flat" color="success">
-                Submit
+              <Button type="submit" onClick={() => (document.getElementById("addform") as HTMLFormElement).requestSubmit()} variant="flat" color="success" disabled={submitting}>
+                {submitting ? "Loading..." : "Submit"}
               </Button>
 
-              <Button onPress={() => setPage(0)} variant="bordered">
+              <Button onPress={() => setPage(0)} variant="bordered" disabled={submitting}>
                 Back to list
               </Button>
             </CardFooter>
