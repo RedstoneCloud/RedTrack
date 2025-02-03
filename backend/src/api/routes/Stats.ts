@@ -137,68 +137,6 @@ router.get('/latest', requiresAuth, async (req: Request, res: Response) => {
         };
     }));
 
-    /*const serversWithPings = await Server.aggregate([
-        // Lookup the pings for each server
-        {
-          $lookup: {
-            from: "pings", // The collection name for Pings
-            localField: "_id", // Match the server _id
-            foreignField: "server", // Match the server in Pings collection
-            as: "pings"
-          }
-        },
-        // Add a field to get the latest ping
-        {
-          $addFields: {
-            latestPing: {
-              $arrayElemAt: [{ $sortArray: { input: "$pings", sortBy: { timestamp: -1 } } }, 0]
-            },
-            // Add fields for highest player count within the last 24 hours
-            dailyPeak: {
-              $arrayElemAt: [
-                {
-                  $sortArray: {
-                    input: {
-                      $filter: {
-                        input: "$pings",
-                        as: "ping",
-                        cond: { $gte: ["$$ping.timestamp", Date.now() - 24 * 60 * 60 * 1000] }
-                      }
-                    },
-                    sortBy: { playerCount: -1 }
-                  }
-                },
-                0
-              ]
-            },
-            // Add field for the highest player count of all-time
-            record: {
-              $arrayElemAt: [
-                {
-                  $sortArray: {
-                    input: "$pings",
-                    sortBy: { playerCount: -1 }
-                  }
-                },
-                0
-              ]
-            }
-          }
-        },
-        // Project the fields you need
-        {
-          $project: {
-            internalId: "$_id",
-            server: "$name",
-            playerCount: "$latestPing.playerCount",
-            dailyPeak: "$dailyPeak.playerCount",
-            dailyPeakTimestamp: "$dailyPeak.timestamp",
-            record: "$record.playerCount",
-            recordTimestamp: "$record.timestamp"
-          }
-        }
-      ]);*/
-
 
     res.json(serversWithPings);
 });
