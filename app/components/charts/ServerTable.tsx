@@ -17,7 +17,6 @@ import {
 
 export const columns = [
     { name: "Internal ID", uid: "internalId", sortable: true },
-    { name: "Ranking", uid: "ranking", sortable: true },
     { name: "Server", uid: "server", sortable: true },
     { name: "Player Count", uid: "playerCount", sortable: true },
     { name: "Daily Peak", uid: "dayPeak", sortable: true },
@@ -122,8 +121,8 @@ export function ServerTable({
     const [visibleColumns, setVisibleColumns] = React.useState(new Set(INITIAL_VISIBLE_COLUMNS));
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
     const [sortDescriptor, setSortDescriptor] = React.useState({
-        column: "ranking",
-        direction: "ascending",
+        column: "playerCount",
+        direction: "descending",
     });
     const [page, setPage] = React.useState(1);
 

@@ -12,6 +12,8 @@ export default function Home() {
     let [data, setData] = useState({
         type: "hour"
     } as any);
+
+    let [tableData, setTableData] = useState({} as any);
     let [fromDate, setFromDate] = useState(new Date().getTime() - 60 * 1000 * 5)
     let [toDate, setToDate] = useState(new Date().getTime());
 
@@ -30,6 +32,28 @@ export default function Home() {
             setToken(null);
 
         if (token != null) {
+            /*fetch(url + "/api/stats/latest", {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'authorization': 'Bearer ' + token
+                }
+            }).then(response => response.json()).then((dat) => {
+                
+            Sample JSON:
+            {
+                "internalId": "id",
+                "server": "serverName"
+                "playerCount": 1,
+                "dailyPeak": 123,
+                "record": 2342,
+                "timestamp": 3443584,
+                "outdated": true
+            } 
+
+
+            });*/
+
             fetch(url + '/api/stats/all?from=' + fromDate + '&to=' + toDate, {
                 method: 'GET',
                 headers: {
@@ -78,7 +102,6 @@ export default function Home() {
                         <ServerTable data={
                             [
                                 {
-                                    ranking: 1,
                                     server: "Syodo",
                                     playerCount: 34,
                                     dayPeak: 45,
@@ -86,7 +109,6 @@ export default function Home() {
                                     internalId: "67a0dd0ae10be8c2ce6acc3a"
                                 },
                                 {
-                                    ranking: 2,
                                     server: "LostPlaceMC",
                                     playerCount: 3,
                                     dayPeak: 3,
@@ -94,7 +116,6 @@ export default function Home() {
                                     internalId: "67a0dd6de10be8c2ce6acc3c"
                                 },
                                 {
-                                    ranking: 3,
                                     server: "LostPlaceMC (Beta)",
                                     playerCount: 0,
                                     dayPeak: 1,
