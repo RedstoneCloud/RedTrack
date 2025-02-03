@@ -21,7 +21,7 @@ export function AddServer({
 }) {
 
     const { isOpen, onOpen, onOpenChange } = useDisclosure();
-    const [serverName, setServerName] = React.useState(""); // For storing server name
+    const [serverName, setServerName] = React.useState("");
     const [serverIP, setServerIP] = React.useState(""); 
     const [serverPort, setServerPort] = React.useState(""); 
 
@@ -34,7 +34,7 @@ export function AddServer({
         
         onOpenChange();
 
-        if (!url) {
+        if (!url) { // TODO: Add toasts - not yet added within heroui
             return;
         }
 
