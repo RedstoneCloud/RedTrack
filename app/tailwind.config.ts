@@ -78,7 +78,7 @@ export default {
   ],
   theme: {
   	extend: {
-  		colors: {},
+        colors: {},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
@@ -86,9 +86,10 @@ export default {
   		}
   	}
   },
-  darkMode: ["class", 'class'],
+  darkMode: "class",
   plugins: [heroui({
-    addCommonColors: true
+    addCommonColors: true,
+    defaultTheme: 'dark'
   }),
       require("tailwindcss-animate")
 ],

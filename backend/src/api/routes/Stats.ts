@@ -122,10 +122,6 @@ router.get('/latest', requiresAuth, async (req: Request, res: Response) => {
             }
         ]);
 
-        console.log(server.name + " " + JSON.stringify(latestPing));
-        console.log(server.name + " " + JSON.stringify(dailyPeak));
-        console.log(server.name + " " + JSON.stringify(record));
-
         const outdated = !latestPing || (currentMillis - latestPing.timestamp) > parseInt(process.env.ping_rate as string)
 
         return {
