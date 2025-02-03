@@ -4,6 +4,18 @@ import { Card, CardBody, CardFooter, CardHeader } from "@heroui/react";
 import { OnlinePlayersChart } from "@/components/charts/OnlinePlayersChart";
 import { ServerTable } from "@/components/charts/ServerTable";
 
+type TableRow = {
+    internalId: string;
+    server: string;
+    playerCount: number;
+    dailyPeak: number;
+    dailyPeakTimestamp: number;
+    record: number;
+    recordTimestamp: number;
+    invalidPings: boolean;
+    outdated: boolean;
+};
+
 export default function Home() {
     let [token, setToken] = useState(null);
     let [url, setUrl] = useState(null);
@@ -13,7 +25,7 @@ export default function Home() {
         type: "hour"
     } as any);
 
-    let [tableData, setTableData] = useState({} as any);
+    let [tableData, setTableData] = useState<TableRow[]>([]);
     let [fromDate, setFromDate] = useState(new Date().getTime() - 60 * 1000 * 5)
     let [toDate, setToDate] = useState(new Date().getTime());
 
@@ -32,27 +44,13 @@ export default function Home() {
             setToken(null);
 
         if (token != null) {
-            /*fetch(url + "/api/stats/latest", {
+            fetch(url + "/api/stats/latest", {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                     'authorization': 'Bearer ' + token
                 }
-            }).then(response => response.json()).then((dat) => {
-                
-            Sample JSON:
-            {
-                "internalId": "id",
-                "server": "serverName"
-                "playerCount": 1,
-                "dailyPeak": 123,
-                "record": 2342,
-                "timestamp": 3443584,
-                "outdated": true
-            } 
-
-
-            });*/
+            }).then(response => response.json()).then((dat) => { console.log(dat); setTableData(dat) });
 
             fetch(url + '/api/stats/all?from=' + fromDate + '&to=' + toDate, {
                 method: 'GET',
@@ -99,31 +97,7 @@ export default function Home() {
             <div>
                 <Card>
                     <CardBody>
-                        <ServerTable data={
-                            [
-                                {
-                                    server: "Syodo",
-                                    playerCount: 34,
-                                    dayPeak: 45,
-                                    record: 145,
-                                    internalId: "67a0dd0ae10be8c2ce6acc3a"
-                                },
-                                {
-                                    server: "LostPlaceMC",
-                                    playerCount: 3,
-                                    dayPeak: 3,
-                                    record: 15,
-                                    internalId: "67a0dd6de10be8c2ce6acc3c"
-                                },
-                                {
-                                    server: "LostPlaceMC (Beta)",
-                                    playerCount: 0,
-                                    dayPeak: 1,
-                                    record: 4,
-                                    internalId: "67a0dd7fe10be8c2ce6acc3d"
-                                }
-                            ]
-                        } onSelectedInternalIdsChange={setSelectedInternalIds} />
+                        <ServerTable data={tableData} onSelectedInternalIdsChange={setSelectedInternalIds} />
                     </CardBody>
                 </Card>
             </div>

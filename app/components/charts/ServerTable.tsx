@@ -21,7 +21,7 @@ export const columns = [
     { name: "Internal ID", uid: "internalId", sortable: true },
     { name: "Server", uid: "server", sortable: true },
     { name: "Player Count", uid: "playerCount", sortable: true },
-    { name: "Daily Peak", uid: "dayPeak", sortable: true },
+    { name: "Daily Peak", uid: "dailyPeak", sortable: true },
     { name: "Record", uid: "record", sortable: true }
 ];
 
@@ -109,7 +109,7 @@ export const ChevronDownIcon = ({ strokeWidth = 1.5, ...otherProps }) => {
     );
 };
 
-const INITIAL_VISIBLE_COLUMNS = ["server", "playerCount", "dayPeak", "record"];
+const INITIAL_VISIBLE_COLUMNS = ["server", "playerCount", "dailyPeak", "record"];
 
 export function ServerTable({
     data,

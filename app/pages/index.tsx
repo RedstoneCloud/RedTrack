@@ -1,7 +1,7 @@
 import { Button, Input, Form, Card, CardBody, CardHeader, CardFooter } from '@heroui/react';
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
-import { AddCircle } from "../components/icons"
+import { PlusIcon } from "@/components/icons";
 
 export default function Home() {
   async function deleteServer(index: any) {
@@ -96,7 +96,7 @@ export default function Home() {
               </div>
             </CardBody>
             <CardFooter>
-              <Button color="default" startContent={<AddCircle />} variant="faded" onPress={() => setPage(1)}>
+              <Button color="default" startContent={<PlusIcon />} variant="faded" onPress={() => setPage(1)}>
                 Add new server
               </Button>
             </CardFooter>
