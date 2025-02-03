@@ -1,4 +1,4 @@
-import { Button, Input, Form, Divider, Card, CardBody, CardHeader, CardFooter } from '@heroui/react';
+import { Button, Input, Form, Card, CardBody, CardHeader, CardFooter } from '@heroui/react';
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { AddCircle } from "../components/icons"
@@ -66,9 +66,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div
-      className="flex flex-col items-center justify-center py-2 h-screen min-w-96 w-96 max-w-96"
-    >
+    <div className="flex flex-col items-center justify-center py-2 w-full h-screen">
       {
         page === 0 ? (
           <Card className={"page-card"}>

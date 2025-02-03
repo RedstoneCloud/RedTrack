@@ -1,51 +1,128 @@
-import React, {useEffect, useState} from "react";
-import {useRouter} from "next/router";
-import {Card, CardBody, CardHeader, Input, Select} from "@heroui/react";
-import {Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button} from "@heroui/react";
-import {ServersChart} from "@/components/charts/serversChart";
-import {Option} from "lucide-react";
-
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/router";
+import { Card, CardBody, CardFooter, CardHeader, Input, Select } from "@heroui/react";
+import {
+    Table,
+    TableHeader,
+    TableColumn,
+    TableBody,
+    TableRow,
+    TableCell,
+    Button,
+    DropdownTrigger,
+    Dropdown,
+    DropdownMenu,
+    DropdownItem,
+    Chip,
+    User,
+    Pagination,
+} from "@heroui/react";
+import { OnlinePlayersChart } from "@/components/charts/OnlinePlayersChart";
+import { ServerTable } from "@/components/charts/ServerTable";
 
 export default function Home() {
-    let [token,setToken] = useState(null);
-    let [url,setUrl] = useState(null);
+    let [token, setToken] = useState(null);
+    let [url, setUrl] = useState(null);
     let router = useRouter();
 
-    let [data,setData] = useState({
+    let [data, setData] = useState({
         type: "hour"
     } as any);
-    let [fromDate, setFromDate] = useState(new Date().getTime()-60*1000*5)
+    let [fromDate, setFromDate] = useState(new Date().getTime() - 60 * 1000 * 5)
     let [toDate, setToDate] = useState(new Date().getTime());
 
 
-    useEffect(()=> {
+    useEffect(() => {
         let servers = JSON.parse(localStorage?.getItem("servers") || "[]");
         let id = parseInt(router.query.server as string) || 0;
         let server = servers[id];
-        if(server) {
+        if (server) {
             setToken(server.token);
             setUrl(server.url);
         }
         else
             setToken(null);
 
-        if(token != null) {
+        if (token != null) {
             fetch(url + '/api/stats/all?from=' + fromDate + '&to=' + toDate, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                     'authorization': 'Bearer ' + token
                 }
-            }).then(response => response.json()).then((dat) => setData({...data, ...dat}))
+            }).then(response => response.json()).then((dat) => setData({ ...data, ...dat }))
         }
     }, [router.query, router, fromDate, toDate]);
 
-    if(!token) {
+    if (!token) {
         return (<div className="flex flex-col items-center justify-center py-2 h-screen min-w-96 w-96 max-w-96">Server does not exist. Please go back.</div>)
     }
 
     return (
-        <div className="flex flex-col gap-4 p-4">
+        <div className="p-4 space-y-4">
+            <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+
+            <div className="flex gap-4 w-full">
+                <Card className="flex-grow">
+                    <CardHeader>
+                        <h2 className="text-blueGray-100 mb-1 text-xl font-semibold">
+                            Currently connected players
+                        </h2>
+                    </CardHeader>
+                    <CardBody className="p-0">
+                        <OnlinePlayersChart data={data} />
+                    </CardBody>
+                    <CardFooter>
+                        <h2 className="text-blueGray-100 mb-1 text-xs font-semibold">
+                            TODO: Navigation
+                        </h2>
+                    </CardFooter>
+                </Card>
+                <Card className="flex-grow">
+                    <CardHeader>
+                        <h1>Other stats</h1>
+                    </CardHeader>
+                    <CardBody className="p-0">
+                        todo
+                    </CardBody>
+                </Card>
+            </div>
+
+            <div>
+                <Card>
+                    <CardBody>
+                        <ServerTable data={
+                            [
+                                {
+                                    id: 1,
+                                    server: "Syodo",
+                                    playerCount: 34,
+                                    dayPeak: 45,
+                                    record: 145
+                                },
+                                {
+                                    id: 2,
+                                    server: "LostPlaceMC",
+                                    playerCount: 3,
+                                    dayPeak: 3,
+                                    record: 15
+                                },
+                                {
+                                    id: 3,
+                                    server: "LostPlaceMC (Beta)",
+                                    playerCount: 0,
+                                    dayPeak: 1,
+                                    record: 4
+                                }
+                            ]
+                        } />
+                    </CardBody>
+                </Card>
+            </div>
+        </div>
+
+
+        /*<div className="flex flex-col gap-4 p-4">
             <Card className={"h-[500px]"}>
                 <CardHeader>Small Chart</CardHeader>
                 <CardBody>
@@ -92,6 +169,6 @@ export default function Home() {
                 <CardBody>
                 </CardBody>
             </Card>
-        </div>
+        </div>*/
     );
 }
