@@ -24,7 +24,7 @@ export const PlusIcon = ({ size = 24, width, height, ...props } : { size?: numbe
     );
 };
 
-export const SearchIcon = (props) => {
+export const SearchIcon = (props: any) => {
     return (
         <svg
             aria-hidden="true"
