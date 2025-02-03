@@ -13,12 +13,13 @@ import {
     DropdownMenu,
     DropdownItem,
     Pagination,
+    Tooltip,
     Chip
 } from "@heroui/react";
 
 import AddServer from "../server/AddServer";
 
-import { ChevronDownIcon, SearchIcon } from "../icons";
+import { ChevronDownIcon, SearchIcon, InfoIcon } from "../icons";
 
 export const columns = [
     { name: "Internal ID", uid: "internalId", sortable: true },
@@ -92,10 +93,14 @@ export function ServerTable({
         });
     }, [sortDescriptor, items]);
 
-    const renderCell = React.useCallback((server : any, columnKey : any) => {
+    const renderCell = React.useCallback((server: any, columnKey: any) => {
         const cellValue = server[columnKey];
 
-        let chip = null;
+        let chip = (
+            <Chip color="success" variant="dot">
+                    Live
+                </Chip>
+        );
         if (server.outdated) {
             chip = (
                 <Chip color="danger" variant="flat">
@@ -112,24 +117,38 @@ export function ServerTable({
             )
         }
 
-        if (chip) {
-            switch (columnKey) {
-                case "server":
-                    return cellValue;
-                case "playerCount":
-                    return (
-                        <div className="flex gap-2 items-center">
-                            {cellValue}
-                            {chip}
-                        </div>
-                    );
-                default:
-                    return "";
-            }
-        } else return cellValue;
+        switch (columnKey) {
+            case "playerCount":
+                return (
+                    <div className="flex gap-4 items-center">
+                        {cellValue}
+                        {chip}
+                    </div>
+                )
+            case "dailyPeak":
+                return (
+                    <div className="flex gap-2 items-center">
+                        {cellValue}
+                        <Tooltip content={`Peaked at ${server.dailyPeakTimestamp}`}>
+                            <button><InfoIcon /></button>
+                        </Tooltip>
+                    </div>
+                )
+            case "record":
+                return (
+                    <div className="flex gap-2 items-center">
+                        {cellValue}
+                        <Tooltip content={`Record made on ${server.dailyPeakTimestamp}`}>
+                            <button><InfoIcon /></button>
+                        </Tooltip>
+                    </div>
+                )
+            default:
+                return cellValue;
+        }
     }, []);
 
-    const onSearchChange = React.useCallback((value : any) => {
+    const onSearchChange = React.useCallback((value: any) => {
         if (value) {
             setFilterValue(value);
             setPage(1);
@@ -149,7 +168,7 @@ export function ServerTable({
         let selectedInternalIds = newSelectedItems;
 
         if (selectedInternalIds === "all") {
-            selectedInternalIds = data.map((item : any) => item.internalId)
+            selectedInternalIds = data.map((item: any) => item.internalId)
         }
 
         onSelectedInternalIdsChange(selectedInternalIds);
@@ -184,7 +203,7 @@ export function ServerTable({
                                 // @ts-ignore
                                 onSelectionChange={setVisibleColumns}
                             >
-                                {columns.map((column : any) => (
+                                {columns.map((column: any) => (
                                     column.uid !== "internalId" && (
                                         <DropdownItem key={column.uid} className="capitalize">
                                             {capitalize(column.name)}
@@ -210,7 +229,7 @@ export function ServerTable({
         return (
             <div className="py-2 px-2 flex justify-between items-center">
                 <span className="w-[30%] text-small text-default-400">
-                    {/* @ts-ignore */ }
+                    {/* @ts-ignore */}
                     {selectedKeys === "all"
                         ? "All items selected"
                         : `${selectedKeys.size} of ${filteredItems.length} selected`}
