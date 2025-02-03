@@ -122,7 +122,7 @@ router.get('/latest', requiresAuth, async (req: Request, res: Response) => {
             }
         ]);
 
-        const outdated = !latestPing || (currentMillis - latestPing.timestamp) > parseInt(process.env.ping_rate as string)
+        const outdated = !latestPing || latestPing.timestamp > (currentMillis - parseInt(process.env.ping_rate as string) + 2000)
 
         return {
             internalId: server._id.toString(),

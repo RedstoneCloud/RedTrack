@@ -13,6 +13,7 @@ import {
     DropdownMenu,
     DropdownItem,
     Pagination,
+    Chip
 } from "@heroui/react";
 
 import AddServer from "../server/AddServer";
@@ -121,12 +122,13 @@ export function ServerTable({
     const [filterValue, setFilterValue] = React.useState("");
     const [selectedKeys, setSelectedKeys] = React.useState<Set<any>>(new Set([]));
     const [visibleColumns, setVisibleColumns] = React.useState(new Set(INITIAL_VISIBLE_COLUMNS));
-    const [rowsPerPage, setRowsPerPage] = React.useState(10);
     const [sortDescriptor, setSortDescriptor] = React.useState({
         column: "playerCount",
         direction: "descending",
     });
     const [page, setPage] = React.useState(1);
+
+    const rowsPerPage = 10;
 
     const hasSearchFilter = Boolean(filterValue);
 
@@ -169,12 +171,40 @@ export function ServerTable({
     }, [sortDescriptor, items]);
 
     const renderCell = React.useCallback((server : any, columnKey : any) => {
-        return server[columnKey];
-    }, []);
+        const cellValue = server[columnKey];
 
-    const onRowsPerPageChange = React.useCallback((e : any) => {
-        setRowsPerPage(Number(e.target.value));
-        setPage(1);
+        let chip = null;
+        if (server.outdated) {
+            chip = (
+                <Chip color="danger" variant="flat">
+                    Outdated
+                </Chip>
+            )
+        }
+
+        if (server.invalidData) {
+            chip = (
+                <Chip color="danger" variant="flat">
+                    Invalid
+                </Chip>
+            )
+        }
+
+        if (chip) {
+            switch (columnKey) {
+                case "server":
+                    return cellValue;
+                case "playerCount":
+                    return (
+                        <div className="flex gap-2 items-center">
+                            {cellValue}
+                            {chip}
+                        </div>
+                    );
+                default:
+                    return "";
+            }
+        } else return cellValue;
     }, []);
 
     const onSearchChange = React.useCallback((value : any) => {
@@ -243,26 +273,11 @@ export function ServerTable({
                         <AddServer />
                     </div>
                 </div>
-                <div className="flex justify-between items-center">
-                    <span className="text-default-400 text-small">Total {data.length} servers</span>
-                    <label className="flex items-center text-default-400 text-small">
-                        Servers per page:
-                        <select
-                            className="bg-transparent outline-none text-default-400 text-small"
-                            onChange={onRowsPerPageChange}
-                        >
-                            <option value="10">10</option>
-                            <option value="20">20</option>
-                            <option value="50">50</option>
-                        </select>
-                    </label>
-                </div>
             </div>
         );
     }, [
         filterValue,
         visibleColumns,
-        onRowsPerPageChange,
         data.length,
         onSearchChange,
         hasSearchFilter,
