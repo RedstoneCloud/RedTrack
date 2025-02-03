@@ -15,6 +15,8 @@ import {
     Pagination,
 } from "@heroui/react";
 
+import AddServer from "../server/AddServer";
+
 export const columns = [
     { name: "Internal ID", uid: "internalId", sortable: true },
     { name: "Server", uid: "server", sortable: true },
@@ -199,7 +201,7 @@ export function ServerTable({
 
         console.log(selectedInternalIds)
         onSelectedInternalIdsChange(selectedInternalIds);
-      };
+    };
 
     const topContent = React.useMemo(() => {
         return (
@@ -238,9 +240,7 @@ export function ServerTable({
                                 ))}
                             </DropdownMenu>
                         </Dropdown>
-                        <Button color="primary" endContent={<PlusIcon />}>
-                            Add server
-                        </Button>
+                        <AddServer />
                     </div>
                 </div>
                 <div className="flex justify-between items-center">
