@@ -7,8 +7,7 @@ export default model("pings", new Schema({
     },
     timestamp: {
         type: Number,
-        required: true,
-        default: Math.floor(Date.now()) //UNIX Timestamp
+        required: true
     },
     playerCount: {
         type: Number,

@@ -4,6 +4,7 @@ import Server from '../models/Server';
 import Pings from "../models/Pings";
 
 async function pingServer(data : ServerData) {
+    const timestamp = Math.floor(Date.now());
     try {
         let pingData = await ping({
             host: data.ip.valueOf(),
@@ -12,14 +13,10 @@ async function pingServer(data : ServerData) {
 
         await new Pings({
             server: data.serverId,
-            playerCount: pingData.playersOnline
+            playerCount: pingData.playersOnline,
+            timestamp: timestamp
         }).save();
     } catch(e) {
-        console.log(e)
-        await new Pings({
-            server: data.serverId,
-            playerCount: -1
-        }).save();
     }
 }
 
