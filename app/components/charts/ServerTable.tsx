@@ -98,8 +98,8 @@ export function ServerTable({
 
         let chip = (
             <Chip color="success" variant="dot">
-                    Live
-                </Chip>
+                Live
+            </Chip>
         );
         if (server.outdated) {
             chip = (
@@ -129,8 +129,8 @@ export function ServerTable({
                 return (
                     <div className="flex gap-2 items-center">
                         {cellValue}
-                        <Tooltip content={`Peaked at ${server.dailyPeakTimestamp}`}>
-                            <button><InfoIcon /></button>
+                        <Tooltip content={`Peaked at ${new Date(server.dailyPeakTimestamp).toString()}`}>
+                            <button className="text-default-400"><InfoIcon /></button>
                         </Tooltip>
                     </div>
                 )
@@ -138,8 +138,8 @@ export function ServerTable({
                 return (
                     <div className="flex gap-2 items-center">
                         {cellValue}
-                        <Tooltip content={`Record made on ${server.dailyPeakTimestamp}`}>
-                            <button><InfoIcon /></button>
+                        <Tooltip content={`Record made on ${new Date(server.recordTimestamp).toString()}`}>
+                            <button className="text-default-400"><InfoIcon viewBox="0 0 24 24" /></button>
                         </Tooltip>
                     </div>
                 )
