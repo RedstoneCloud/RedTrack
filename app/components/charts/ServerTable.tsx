@@ -43,12 +43,13 @@ export function ServerTable({
     const [filterValue, setFilterValue] = React.useState("");
     const [selectedKeys, setSelectedKeys] = React.useState<Set<any>>(new Set([]));
     const [visibleColumns, setVisibleColumns] = React.useState(new Set(INITIAL_VISIBLE_COLUMNS));
-    const [rowsPerPage, setRowsPerPage] = React.useState(10);
     const [sortDescriptor, setSortDescriptor] = React.useState({
         column: "playerCount",
         direction: "descending",
     });
     const [page, setPage] = React.useState(1);
+
+    const rowsPerPage = 10;
 
     const hasSearchFilter = Boolean(filterValue);
 
@@ -91,11 +92,6 @@ export function ServerTable({
 
     const renderCell = React.useCallback((server, columnKey) => {
         return server[columnKey];
-    }, []);
-
-    const onRowsPerPageChange = React.useCallback((e) => {
-        setRowsPerPage(Number(e.target.value));
-        setPage(1);
     }, []);
 
     const onSearchChange = React.useCallback((value) => {
@@ -164,20 +160,6 @@ export function ServerTable({
                         </Dropdown>
                         <AddServer />
                     </div>
-                </div>
-                <div className="flex justify-between items-center">
-                    <span className="text-default-400 text-small">Total {data.length} servers</span>
-                    <label className="flex items-center text-default-400 text-small">
-                        Servers per page:
-                        <select
-                            className="bg-transparent outline-none text-default-400 text-small"
-                            onChange={onRowsPerPageChange}
-                        >
-                            <option value="10">10</option>
-                            <option value="20">20</option>
-                            <option value="50">50</option>
-                        </select>
-                    </label>
                 </div>
             </div>
         );
