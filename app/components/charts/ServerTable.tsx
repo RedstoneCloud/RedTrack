@@ -13,6 +13,7 @@ import {
     DropdownMenu,
     DropdownItem,
     Pagination,
+    Chip
 } from "@heroui/react";
 
 import AddServer from "../server/AddServer";
@@ -91,7 +92,40 @@ export function ServerTable({
     }, [sortDescriptor, items]);
 
     const renderCell = React.useCallback((server, columnKey) => {
-        return server[columnKey];
+        const cellValue = server[columnKey];
+
+        let chip = null;
+        if (server.outdated) {
+            chip = (
+                <Chip color="danger" variant="flat">
+                    Outdated
+                </Chip>
+            )
+        }
+
+        if (server.invalidData) {
+            chip = (
+                <Chip color="danger" variant="flat">
+                    Invalid
+                </Chip>
+            )
+        }
+
+        if (chip) {
+            switch (columnKey) {
+                case "server":
+                    return cellValue;
+                case "playerCount":
+                    return (
+                        <div className="flex gap-2 items-center">
+                            {cellValue}
+                            {chip}
+                        </div>
+                    );
+                default:
+                    return "";
+            }
+        } else return cellValue;
     }, []);
 
     const onSearchChange = React.useCallback((value) => {
