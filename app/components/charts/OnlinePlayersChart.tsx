@@ -13,18 +13,17 @@ export function OnlinePlayersChart({ data }: { data: any }) {
         for (let server in data.data) {
             let serverData = data.data[server];
 
-            let color = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
             let serverDataset = {
                 label: server,
-                data: serverData.map((point: any) => ({
+                data: serverData.pings.map((point: any) => ({
                     x: point.timestamp,
                     y: point.count
                 })),
                 fill: false,
                 pointRadius: 0,
                 pointHoverRadius: 0,
-                backgroundColor: color,
-                borderColor: color,
+                backgroundColor: serverData.color,
+                borderColor: serverData.color,
             };
 
             datasets.push(serverDataset);
@@ -105,18 +104,17 @@ export function OnlinePlayersChart({ data }: { data: any }) {
                         },
                     },
                 },
-            },
+            }
         };
 
         // Destroy previous chart instance before creating a new one
-        if (chartRef.current) {
-            chartRef.current.destroy();
-        }
-
-        // Create new chart
-        if (canvasRef.current) {
+        if (Chart.instances['0'] != null) {
+            // update data
+            Chart.instances['0'].data.datasets = datasets;
+            Chart.instances['0'].update('none');
+        } else if (canvasRef.current) {
             // @ts-ignore
-            chartRef.current = new Chart(canvasRef.current, options);
+            Chart.instances['0'] = new Chart(canvasRef.current, options);
         }
 
         return () => {

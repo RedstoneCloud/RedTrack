@@ -5,11 +5,13 @@ import Server from "../../models/Server";
 const router = Router();
 
 router.post('/create', requiresAuth, async (req: Request, res: Response): Promise<void> => {
+    console.log("Creating server");
     try {
         const { serverName, serverIP, serverPort } = req.body; // TODO: Validation
 
         if (!serverName || !serverIP || !serverPort) {
             res.status(400).json({ error: "All fields are required" });
+            console.log("All fields are required");
             return;
         }
 
@@ -18,6 +20,8 @@ router.post('/create', requiresAuth, async (req: Request, res: Response): Promis
             ip: serverIP,
             port: serverPort
         }).save();
+
+        console.log("Server created successfully");
 
         res.status(201).json({ message: "Server created successfully" });
         return;

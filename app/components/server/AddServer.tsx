@@ -10,28 +10,28 @@ import {
     Input,
 } from "@heroui/react";
 
-import { PlusIcon } from "@/components/icons";
+import {PlusIcon} from "@/components/icons";
 
 export function AddServer({
-    url,
-    token
-}: {
+                              url,
+                              token
+                          }: {
     url: string,
     token: string
 }) {
 
-    const { isOpen, onOpen, onOpenChange } = useDisclosure();
+    const {isOpen, onOpen, onOpenChange} = useDisclosure();
     const [serverName, setServerName] = React.useState("");
-    const [serverIP, setServerIP] = React.useState(""); 
-    const [serverPort, setServerPort] = React.useState(""); 
+    const [serverIP, setServerIP] = React.useState("");
+    const [serverPort, setServerPort] = React.useState("");
 
     const handleAddServer = async () => {
         const formData = {
-          serverName,
-          serverIP,
-          serverPort
+            serverName,
+            serverIP,
+            serverPort
         };
-        
+
         onOpenChange();
 
         if (!url) { // TODO: Add toasts - not yet added within heroui
@@ -50,7 +50,7 @@ export function AddServer({
 
     return (
         <>
-            <Button color="primary" onPress={onOpen} endContent={<PlusIcon />}>
+            <Button color="primary" onPress={onOpen} endContent={<PlusIcon/>}>
                 Add server
             </Button>
             <Modal isOpen={isOpen} onOpenChange={onOpenChange} placement="top-center">

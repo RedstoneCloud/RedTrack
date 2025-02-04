@@ -1,5 +1,5 @@
-import { Router, Request, Response } from 'express';
-import { requiresAuth } from "../ApiServer";
+import {Router, Request, Response} from 'express';
+import {requiresAuth} from "../ApiServer";
 import Pings from "../../models/Pings";
 import Server from "../../models/Server";
 
@@ -56,26 +56,33 @@ router.get('/all', requiresAuth, async (req: Request, res: Response) => {
     let from = inRange ? parseInt(req.query.from as string) : allPings[0].timestamp;
     let to = inRange ? parseInt(req.query.to as string) : allPings[allPings.length - 1].timestamp;
 
+    //serverColors as _id -> color
+    let serverColors = await Server.find().then(servers => {
+        let colors = {} as any;
+        servers.forEach((server: any) => {
+            colors[server._id.toString()] = server.color;
+        });
+        return colors;
+    });
+
+    let data = sortedPings.reduce((acc, ping) => {
+        // @ts-ignore
+        if (!acc[ping.server]) {
+            // @ts-ignore
+            acc[ping.server] = {pings: [], color: serverColors[ping.server]};
+        }
+        // @ts-ignore
+        acc[ping.server].pings.push({
+            timestamp: ping.timestamp,
+            count: ping.playerCount
+        });
+        return acc;
+    }, {})
+
     res.json({
         from,
         to,
-        data: {
-            //serverId: [{timestamp, count}, ...],
-            //...
-            ...sortedPings.reduce((acc, ping) => {
-                // @ts-ignore
-                if (!acc[ping.server]) {
-                    // @ts-ignore
-                    acc[ping.server] = [];
-                }
-                // @ts-ignore
-                acc[ping.server].push({
-                    timestamp: ping.timestamp,
-                    count: ping.playerCount
-                });
-                return acc;
-            }, {})
-        }
+        data
     })
 });
 
@@ -86,9 +93,9 @@ router.get('/latest', requiresAuth, async (req: Request, res: Response) => {
 
     const serversWithPings = await Promise.all(servers.map(async (server) => {
         const latestPings = await Pings.aggregate([
-            { $match: { server: server._id.toString() } },   // Match the server ID
-            { $sort: { timestamp: -1 } },         // Sort by timestamp in descending order
-            { $limit: 1 }                         // Limit to the most recent ping
+            {$match: {server: server._id.toString()}},   // Match the server ID
+            {$sort: {timestamp: -1}},         // Sort by timestamp in descending order
+            {$limit: 1}                         // Limit to the most recent ping
         ]);
 
         const latestPing = latestPings.length > 0 ? latestPings[0] : null
@@ -97,25 +104,25 @@ router.get('/latest', requiresAuth, async (req: Request, res: Response) => {
             {
                 $match: {
                     server: server._id.toString(),
-                    timestamp: { $gte: currentMillis - 24 * 60 * 60 * 1000 }
+                    timestamp: {$gte: currentMillis - 24 * 60 * 60 * 1000}
                 }
             },
             {
                 $group: {
                     _id: undefined,
-                    playerCount: { $max: "$playerCount" },
-                    timestamp: { $first: "$timestamp" }
+                    playerCount: {$max: "$playerCount"},
+                    timestamp: {$first: "$timestamp"}
                 }
             }
         ]);
 
         const record = await Pings.aggregate([
-            { $match: { server: server._id.toString() } },
+            {$match: {server: server._id.toString()}},
             {
                 $group: {
                     _id: undefined,
-                    playerCount: { $max: "$playerCount" },
-                    timestamp: { $first: "$timestamp" }
+                    playerCount: {$max: "$playerCount"},
+                    timestamp: {$first: "$timestamp"}
                 }
             }
         ]);

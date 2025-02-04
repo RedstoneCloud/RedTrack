@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { Card, CardBody, CardFooter, CardHeader } from "@heroui/react";
 import { OnlinePlayersChart } from "@/components/charts/OnlinePlayersChart";
 import { ServerTable } from "@/components/charts/ServerTable";
+import { Preferences } from '@capacitor/preferences';
 
 type TableRow = {
     internalId: string;
@@ -16,7 +17,7 @@ type TableRow = {
     outdated: boolean;
 };
 
-export default function Home() {
+export default function Dashboard() {
     let [token, setToken] = useState(null);
     let [url, setUrl] = useState(null);
     let router = useRouter();
@@ -33,8 +34,8 @@ export default function Home() {
 
     const pingRate = 3000;
 
-    function reloadData() {
-        let servers = JSON.parse(localStorage?.getItem("servers") || "[]");
+    async function reloadData() {
+        let servers = await Preferences.get({ key: 'servers' }).then((dat) => JSON.parse(dat.value || "[]"));
         let id = parseInt(router.query.server as string) || 0;
         let server = servers[id];
         if (server) {
@@ -80,7 +81,7 @@ export default function Home() {
     return (
         <div className="flex flex-col h-screen p-4 space-y-4">
             <div className="flex flex-grow gap-4 w-full">
-                <Card className="flex-grow">
+                <Card className="flex-grow min-h-[306px]">
                     <CardHeader>
                         <h2 className="text-blueGray-100 mb-1 text-xl font-semibold">
                             Currently connected players
@@ -107,7 +108,7 @@ export default function Home() {
 
             <div>
                 <Card>
-                    <CardBody>
+                    <CardBody className="overflow-y-scroll">
                         <ServerTable url={url} token={token} data={tableData} onSelectedInternalIdsChange={setSelectedInternalIds} />
                     </CardBody>
                 </Card>

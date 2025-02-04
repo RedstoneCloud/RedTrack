@@ -36,11 +36,11 @@ export function capitalize(s: String) {
 const INITIAL_VISIBLE_COLUMNS = ["server", "playerCount", "dailyPeak", "record"];
 
 export function ServerTable({
-    url,
-    token,
-    data,
-    onSelectedInternalIdsChange
-}: {
+                                url,
+                                token,
+                                data,
+                                onSelectedInternalIdsChange
+                            }: {
     url: string | null,
     token: string,
     data: any;
@@ -124,10 +124,16 @@ export function ServerTable({
         switch (columnKey) {
             case "server":
                 return (
-                    <div className="flex gap-4 items-center">
-                        {chip}
-                        {cellValue}
+                    //split div in left and right
+                    <div className="flex gap-4">
+                        <div
+                            className="w-1/3 justify-end items-end text-end"
+                        >{chip}</div>
+                        <span
+                            className="w-2/3 justify-start items-start text-start"
+                        >{cellValue}</span>
                     </div>
+
                 )
             case "dailyPeak":
                 return (
@@ -216,7 +222,7 @@ export function ServerTable({
                                 ))}
                             </DropdownMenu>
                         </Dropdown>
-                        <AddServer url={url} token={token} />
+                        <AddServer url={url || ""} token={token} />
                     </div>
                 </div>
             </div>
@@ -290,4 +296,3 @@ export function ServerTable({
         </Table>
     );
 }
-

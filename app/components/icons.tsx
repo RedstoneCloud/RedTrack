@@ -96,3 +96,32 @@ export const InfoIcon = (props: any) => {
         </svg>
     )
 }
+
+export const TrashIcon = ({ size = 24, width, height, ...props }: { size?: number; width?: number; height?: number }) => {
+    return (
+        <svg
+            aria-hidden="true"
+            fill="none"
+            focusable="false"
+            height={size || height}
+            role="presentation"
+            viewBox="0 0 24 24"
+            width={size || width}
+            {...props}
+        >
+            <g
+                fill="none"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+            >
+                <path d="M3 6h18" />  {/* Trash lid */}
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />  {/* Trash can top */}
+                <path d="M10 11v6" />  {/* Left bin line */}
+                <path d="M14 11v6" />  {/* Right bin line */}
+                <path d="M5 6l1 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-14" />  {/* Trash body */}
+            </g>
+        </svg>
+    );
+};

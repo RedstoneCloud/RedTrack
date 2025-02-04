@@ -2,15 +2,17 @@ import { Button, Input, Form, Card, CardBody, CardHeader, CardFooter } from '@he
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { PlusIcon } from "@/components/icons";
-import { App } from "@capacitor/app";
-import { Capacitor } from "@capacitor/core"
+import { Preferences } from '@capacitor/preferences';
+import {useRouter} from "next/router";
+import {TrashIcon} from "lucide-react";
 
 export default function Home() {
   async function deleteServer(index: any) {
-    let servers = localStorage.getItem("servers") ? JSON.parse(localStorage?.getItem("servers") || "[]") : [];
+    let servers = JSON.parse((await Preferences.get({key: "servers"})).value || "[]");
     servers.splice(index, 1);
-    localStorage.setItem("servers", JSON.stringify(servers));
+    await Preferences.set({key: "servers", value: JSON.stringify(servers)});
     setServers(servers);
+
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -39,14 +41,13 @@ export default function Home() {
         }
 
         const json = await response.json();
-        console.log(json);
         if (json.success) {
-            let servers = localStorage.getItem("servers") ? JSON.parse(localStorage?.getItem("servers") || "[]") : [];
+            let servers = JSON.parse((await Preferences.get({key: "servers"})).value || "[]");
             servers.push({
                 url: url,
                 token: json.sessionId
             });
-            localStorage.setItem("servers", JSON.stringify(servers));
+            await Preferences.set({key: "servers", value: JSON.stringify(servers)});
             setServers(servers);
             setPage(0);
         } else {
@@ -63,8 +64,12 @@ export default function Home() {
   let [loginError, setLoginError] = useState("");
   let [submitting, setSubmitting] = useState(false);
 
+  let router = useRouter();
+
   useEffect(() => {
-    setServers(localStorage.getItem("servers") ? JSON.parse(localStorage?.getItem("servers") || "[]") : []);
+      Preferences.get({key: "servers"}).then(data => {
+          setServers(data.value ? JSON.parse(data.value) : []);
+      })
   }, []);
 
   return (
@@ -85,21 +90,20 @@ export default function Home() {
               <div className={"flex flex-col gap-2"}>
                 {
                   servers.map((server: any, index: any) => (
-                    <Button key={index} variant="bordered" onPress={() => {
-    const url = `/dashboard?server=${index}`;
-    if (Capacitor.isNativePlatform()) {
-      App.openUrl({ url: "https://yourdomain.com" + url }); // Use full URL for native
-    } else {
-      window.location.href = url; // Works for web
-    }
-  }}>
-                      {server.url}
-                      <Button key={"del" + index} variant="bordered" onPress={() => {
-                        deleteServer(index);
-                      }}>
-                        Delete
-                      </Button>
-                    </Button>
+                    <div className="inline-flex gap-2">
+                        <Button key={index} variant="bordered" className="w-full" onPress={() => {
+                            //reload the page
+                            router.push("/dashboard?server=" + index);
+                            router.reload()
+                        }}>
+                            {server.url}
+                        </Button>
+                        <Button key={"del" + index} variant="flat" color="danger" className="w-1/6" onPress={() => {
+                            deleteServer(index);
+                        }}>
+                            <TrashIcon width={25} />
+                        </Button>
+                    </div>
                   ))
                 }
               </div>
