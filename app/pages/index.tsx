@@ -2,6 +2,8 @@ import { Button, Input, Form, Card, CardBody, CardHeader, CardFooter } from '@he
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { PlusIcon } from "@/components/icons";
+import { App } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core"
 
 export default function Home() {
   async function deleteServer(index: any) {
@@ -83,7 +85,14 @@ export default function Home() {
               <div className={"flex flex-col gap-2"}>
                 {
                   servers.map((server: any, index: any) => (
-                    <Button key={index} variant="bordered" onPress={() => window.location.href = "/dashboard?server=" + index}>
+                    <Button key={index} variant="bordered" onPress={() => {
+    const url = `/dashboard?server=${index}`;
+    if (Capacitor.isNativePlatform()) {
+      App.openUrl({ url: "https://yourdomain.com" + url }); // Use full URL for native
+    } else {
+      window.location.href = url; // Works for web
+    }
+  }}>
                       {server.url}
                       <Button key={"del" + index} variant="bordered" onPress={() => {
                         deleteServer(index);
