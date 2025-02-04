@@ -9,6 +9,7 @@ type TableRow = {
     internalId: string;
     server: string;
     playerCount: number;
+    playerCountDevelopment: any;
     dailyPeak: number;
     dailyPeakTimestamp: number;
     record: number;
@@ -27,6 +28,7 @@ export default function Dashboard() {
     } as any);
 
     let [tableData, setTableData] = useState<TableRow[]>([]);
+    let [tableData_, setTableData_] = useState<TableRow[]>([]);
     let [fromDate, setFromDate] = useState(new Date().getTime() - 60 * 1000 * 5)
     let [toDate, setToDate] = useState(new Date().getTime());
 
@@ -52,7 +54,32 @@ export default function Dashboard() {
                     'Content-Type': 'application/json',
                     'authorization': 'Bearer ' + token
                 }
-            }).then(response => response.json()).then((dat) => { setTableData(dat) });
+            }).then(response => response.json()).then((dat) => {
+                setTableData_((prevTableData_) => {
+                    const tableDataMap = prevTableData_ && prevTableData_.length > 0 ? new Map(prevTableData_.map((item) => [item.internalId, item])) : null;
+
+                    const updatedData = dat.map((item: TableRow) => {
+                        const previousData = tableDataMap ? tableDataMap.get(item.internalId) : null;
+    
+                        let playerCountDevelopment = "stagnant";
+                        if (previousData) {
+                            if (item.playerCount > previousData.playerCount) {
+                                playerCountDevelopment = "increasing";
+                            } else if (item.playerCount < previousData.playerCount) {
+                                playerCountDevelopment = "decreasing";
+                            }
+                        }
+    
+                        return {
+                            ...item,
+                            playerCountDevelopment,
+                        };
+                    });
+
+                    setTableData(updatedData);
+                    return updatedData;
+                })
+            });
 
             fetch(url + '/api/stats/all?from=' + fromDate + '&to=' + toDate, {
                 method: 'GET',

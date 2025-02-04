@@ -19,7 +19,7 @@ import {
 
 import { AddServer } from "../server/AddServer";
 
-import { ChevronDownIcon, SearchIcon, InfoIcon } from "../icons";
+import { ChevronDownIcon, SearchIcon, InfoIcon, ArrowIcon } from "../icons";
 
 export const columns = [
     { name: "Internal ID", uid: "internalId", sortable: true },
@@ -98,7 +98,11 @@ export function ServerTable({
     }, [sortDescriptor, items]);
 
     const renderCell = React.useCallback((server: any, columnKey: any) => {
-        const cellValue = server[columnKey];
+        const cellValue = (
+            <span className="font-bold text-default-700">
+                {server[columnKey]}
+            </span>
+        );
 
         let chip = (
             <Chip color="success" variant="dot">
@@ -108,15 +112,7 @@ export function ServerTable({
         if (server.outdated) {
             chip = (
                 <Chip color="danger" variant="flat">
-                    Outdated
-                </Chip>
-            )
-        }
-
-        if (server.invalidData) {
-            chip = (
-                <Chip color="danger" variant="flat">
-                    Invalid
+                    {server.invalidData ? 'Invalid' : 'Outdated'}
                 </Chip>
             )
         }
@@ -124,16 +120,18 @@ export function ServerTable({
         switch (columnKey) {
             case "server":
                 return (
-                    //split div in left and right
-                    <div className="flex gap-4">
-                        <div
-                            className="w-1/3 justify-end items-end text-end"
-                        >{chip}</div>
-                        <span
-                            className="w-2/3 justify-start items-start text-start"
-                        >{cellValue}</span>
+                    <div className="flex gap-4 items-center w-48">
+                        <span className="w-2/3 justify-start items-start text-start">{cellValue}</span>
+                        <div className="w-1/3 justify-end items-end text-end">{chip}</div>
                     </div>
 
+                )
+            case "playerCount":
+                return (
+                    <div className={`flex gap-2 items-center`}>
+                        {cellValue}
+                        <ArrowIcon className={`size-6 text-${server.playerCountDevelopment == 'stagnant' ? 'default-400' : server.playerCountDevelopment == 'increasing' ? 'success-400' : 'danger'}  ${server.playerCountDevelopment !== 'stagnant' ? (server.playerCountDevelopment == 'increasing' ? '-' : '') + 'rotate-45' : ''}`} />
+                    </div>
                 )
             case "dailyPeak":
                 return (
@@ -149,7 +147,7 @@ export function ServerTable({
                     <div className="flex gap-2 items-center">
                         {cellValue}
                         <Tooltip content={`Record made on ${new Date(server.recordTimestamp).toString()}`}>
-                            <button className="text-default-400"><InfoIcon viewBox="0 0 24 24" /></button>
+                            <button className="text-default-400"><InfoIcon /></button>
                         </Tooltip>
                     </div>
                 )
