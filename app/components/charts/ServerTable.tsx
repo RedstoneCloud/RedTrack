@@ -39,15 +39,12 @@ export function ServerTable({
     url,
     token,
     data,
-    onSelectedInternalIdsChange
 }: {
     url: string | null,
     token: string,
     data: any;
-    onSelectedInternalIdsChange: (keys: Set<any>) => void;
 }) {
     const [filterValue, setFilterValue] = React.useState("");
-    const [selectedKeys, setSelectedKeys] = React.useState<Set<any>>(new Set([]));
     const [visibleColumns, setVisibleColumns] = React.useState(new Set(INITIAL_VISIBLE_COLUMNS));
     const [sortDescriptor, setSortDescriptor] = React.useState({
         column: "playerCount",
@@ -174,18 +171,6 @@ export function ServerTable({
         setPage(1);
     }, []);
 
-    const handleSelectionChange = (newSelectedItems: any) => {
-        setSelectedKeys(newSelectedItems);
-
-        let selectedInternalIds = newSelectedItems;
-
-        if (selectedInternalIds === "all") {
-            selectedInternalIds = data.map((item: any) => item.internalId)
-        }
-
-        onSelectedInternalIdsChange(selectedInternalIds);
-    };
-
     const topContent = React.useMemo(() => {
         return (
             <div className="flex flex-col gap-4">
@@ -240,12 +225,6 @@ export function ServerTable({
     const bottomContent = React.useMemo(() => {
         return (
             <div className="py-2 px-2 flex justify-between items-center">
-                <span className="w-[30%] text-small text-default-400">
-                    {/* @ts-ignore */}
-                    {selectedKeys === "all"
-                        ? "All items selected"
-                        : `${selectedKeys.size} of ${filteredItems.length} selected`}
-                </span>
                 <Pagination
                     isCompact
                     showControls
@@ -257,7 +236,7 @@ export function ServerTable({
                 />
             </div>
         );
-    }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
+    }, [items.length, page, pages, hasSearchFilter]);
 
     return (
         <Table
@@ -268,13 +247,10 @@ export function ServerTable({
             classNames={{
                 wrapper: "max-h-[382px]",
             }}
-            selectedKeys={selectedKeys}
-            selectionMode="multiple"
             // @ts-ignore
             sortDescriptor={sortDescriptor}
             topContent={topContent}
             topContentPlacement="outside"
-            onSelectionChange={handleSelectionChange}
             // @ts-ignore
             onSortChange={setSortDescriptor}
         >

@@ -1,9 +1,9 @@
-import React, {useEffect, useState} from "react";
-import {useRouter} from "next/router";
-import {Card, CardBody, CardFooter, CardHeader} from "@heroui/react";
-import {OnlinePlayersChart} from "@/components/charts/OnlinePlayersChart";
-import {ServerTable} from "@/components/charts/ServerTable";
-import {Preferences} from "@capacitor/preferences";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/router";
+import { Card, CardBody, CardFooter, CardHeader } from "@heroui/react";
+import { OnlinePlayersChart } from "@/components/charts/OnlinePlayersChart";
+import { ServerTable } from "@/components/charts/ServerTable";
+import { Preferences } from "@capacitor/preferences";
 
 type TableRow = {
     internalId: string;
@@ -31,8 +31,6 @@ export default function Dashboard() {
     let [tableData_, setTableData_] = useState<TableRow[]>([]);
     let [fromDate, setFromDate] = useState(new Date().getTime() - 60 * 1000 * 60 * 12)
     let [toDate, setToDate] = useState(new Date().getTime());
-
-    const [selectedInternalIds, setSelectedInternalIds] = useState<Set<any>>(new Set([]));
 
     const pingRate = 3000;
 
@@ -118,37 +116,26 @@ export default function Dashboard() {
 
     return (
         <div className="flex flex-col h-screen p-4 space-y-4">
-            <div className="flex flex-grow gap-4 w-full">
-                <Card className="flex-grow min-h-[306px]">
-                    <CardHeader>
-                        <h2 className="text-blueGray-100 mb-1 text-xl font-semibold">
-                            Currently connected players
-                        </h2>
-                    </CardHeader>
-                    <CardBody className="p-0">
-                        <OnlinePlayersChart data={data}/>
-                    </CardBody>
-                    <CardFooter>
-                        <h2 className="text-blueGray-100 mb-1 text-xs font-semibold">
-                            TODO: Navigation
-                        </h2>
-                    </CardFooter>
-                </Card>
-                <Card className="flex-grow">
-                    <CardHeader>
-                        <h1>Other stats</h1>
-                    </CardHeader>
-                    <CardBody className="p-0">
-                        todo
-                    </CardBody>
-                </Card>
-            </div>
+            <Card className="flex-grow min-h-[306px]">
+                <CardHeader>
+                    <h2 className="text-blueGray-100 mb-1 text-xl font-semibold">
+                        Currently connected players
+                    </h2>
+                </CardHeader>
+                <CardBody className="p-0">
+                    <OnlinePlayersChart data={data} />
+                </CardBody>
+                <CardFooter>
+                    <h2 className="text-blueGray-100 mb-1 text-xs font-semibold">
+                        TODO: Navigation
+                    </h2>
+                </CardFooter>
+            </Card>
 
             <div>
                 <Card>
                     <CardBody className="overflow-y-scroll">
-                        <ServerTable url={url} token={token} data={tableData}
-                                     onSelectedInternalIdsChange={setSelectedInternalIds}/>
+                        <ServerTable url={url} token={token} data={tableData} />
                     </CardBody>
                 </Card>
             </div>
