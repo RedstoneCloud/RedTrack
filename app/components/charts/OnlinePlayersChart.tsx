@@ -152,26 +152,19 @@ export function OnlinePlayersChart({ data }: { data: any }) {
     }, [data]);
 
     return (
-        <div className="relative flex flex-col min-w-0 break-words w-full mb-6 shadow-lg rounded bg-blueGray-700">
-            <div className="p-4">
-                {/* Chart */}
-                <div>
-                    <canvas ref={canvasRef}
-                    onDoubleClick={() => {
-                        let chart = Chart.instances['0'];
-                        // @ts-ignore
-                        chart.options.scales.x.min = undefined;
-                        // @ts-ignore
-                        chart.options.scales.x.max = undefined;
-                        // @ts-ignore
-                        chart.options.scales.y.min = undefined;
-                        // @ts-ignore
-                        chart.options.scales.y.max = undefined;
-                        chart.update();
-                    }}
-                    ></canvas>
-                </div>
-            </div>
-        </div>
+        <canvas ref={canvasRef} className="p-2"
+            onDoubleClick={() => {
+                let chart = Chart.instances['0'];
+                // @ts-ignore
+                chart.options.scales.x.min = undefined;
+                // @ts-ignore
+                chart.options.scales.x.max = undefined;
+                // @ts-ignore
+                chart.options.scales.y.min = undefined;
+                // @ts-ignore
+                chart.options.scales.y.max = undefined;
+                chart.update();
+            }}
+        ></canvas>
     );
 }
