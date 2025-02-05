@@ -126,14 +126,15 @@ export function ServerTable({
                 )
             case "playerCount":
                 return (
-                    <div className={`flex gap-2 items-center`}>
-                        {cellValue}
+                    <div className={`flex gap-2 items-center text-${server.playerCountDevelopment === 'stagnant' ?
+                                    'default-400' :
+                                    server.playerCountDevelopment === 'increasing' ? 'success-400' : 'danger'}`}>
                         <ArrowIcon
                             className={`size-6 
-                            text-${server.playerCountDevelopment === 'stagnant' ?
-                                    'default-400' :
-                                    server.playerCountDevelopment === 'increasing' ? 'success-400' : 'danger'}  
                             ${server.playerCountDevelopment !== 'stagnant' ? (server.playerCountDevelopment === 'increasing' ? '-rotate-45' : 'rotate-45') : ''}`} />
+                            <span className="font-bold">
+                                {server[columnKey]}
+                            </span>
                     </div>
                 )
             case "dailyPeak":
