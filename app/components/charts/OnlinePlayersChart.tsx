@@ -70,7 +70,7 @@ export function OnlinePlayersChart({ data }: { data: any }) {
                             pan: {
                                 enabled: true
                             },
-                            mode: 'xy',
+                            mode: 'x',
                         },
                     }
                 },
@@ -153,7 +153,7 @@ export function OnlinePlayersChart({ data }: { data: any }) {
 
     return (
         <div className="relative flex flex-col min-w-0 break-words w-full mb-6 shadow-lg rounded bg-blueGray-700">
-            <div className="p-4 flex-auto">
+            <div className="p-4">
                 {/* Chart */}
                 <div>
                     <canvas ref={canvasRef}

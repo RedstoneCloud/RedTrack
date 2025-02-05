@@ -28,7 +28,6 @@ export default function Dashboard() {
     } as any);
 
     let [tableData, setTableData] = useState<TableRow[]>([]);
-    let [tableData_, setTableData_] = useState<TableRow[]>([]);
     let [fromDate, setFromDate] = useState(new Date().getTime() - 60 * 1000 * 60 * 12)
     let [toDate, setToDate] = useState(new Date().getTime());
 
@@ -54,8 +53,8 @@ export default function Dashboard() {
                             'authorization': 'Bearer ' + tok
                         }
                     }).then(response => response.json()).then((dat) => {
-                        setTableData_((prevTableData_) => {
-                            const tableDataMap = prevTableData_ && prevTableData_.length > 0 ? new Map(prevTableData_.map((item) => [item.internalId, item])) : null;
+                        setTableData((prevTableData) => {
+                            const tableDataMap = prevTableData && prevTableData.length > 0 ? new Map(prevTableData.map((item) => [item.internalId, item])) : null;
 
                             const updatedData = dat.map((item: TableRow) => {
                                 const previousData = tableDataMap ? tableDataMap.get(item.internalId) : null;
@@ -75,7 +74,6 @@ export default function Dashboard() {
                                 };
                             });
 
-                            setTableData(updatedData);
                             return updatedData;
                         })
                     });
