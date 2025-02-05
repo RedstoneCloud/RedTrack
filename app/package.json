@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "sync": "cp ./rc_logo.png ./android/app/src/main/res/mipmap-hdpi/rc_logo.png && cp ./rc_logo.png ./android/app/src/main/res/mipmap-mdpi/rc_logo.png && cp ./rc_logo.png ./android/app/src/main/res/mipmap-xhdpi/rc_logo.png && cp ./rc_logo.png ./android/app/src/main/res/mipmap-xxhdpi/rc_logo.png && cp ./rc_logo.png ./android/app/src/main/res/mipmap-xxxhdpi/rc_logo.png && npx cap sync"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.1",

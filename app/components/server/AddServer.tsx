@@ -46,16 +46,13 @@ export function AddServer({
                     'Content-Type': 'application/json',
                     'authorization': 'Bearer ' + token
                 },
-                header: {
-                  'authorization': 'Bearer ' + token
-                },
                 body: JSON.stringify(formData)
             }).then(d => d.json()).then(data => {
                if(data.error) setError(data.error);
                else onOpenChange();
             });
-        } catch (e) {
-            setError(e);
+        } catch (e : any) {
+            setError(e.toString());
         }
     };
 
