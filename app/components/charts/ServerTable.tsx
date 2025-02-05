@@ -96,7 +96,7 @@ export function ServerTable({
 
     const renderCell = React.useCallback((server: any, columnKey: any) => {
         const cellValue = (
-            <span className="font-bold text-default-700">
+            <span className={`font-bold ${columnKey != "playerCount" || server.playerCountDevelopment === "stagnant" ? "text-default-700" : ""}`}>
                 {server[columnKey]}
             </span>
         );
@@ -129,9 +129,7 @@ export function ServerTable({
                         <ArrowIcon
                             className={`size-6 
                             ${server.playerCountDevelopment !== 'stagnant' ? (server.playerCountDevelopment === 'increasing' ? '-rotate-45' : 'rotate-45') : ''}`} />
-                            <span className="font-bold">
-                                {server[columnKey]}
-                            </span>
+                            {cellValue}
                     </div>
                 )
             case "dailyPeak":
@@ -178,7 +176,7 @@ export function ServerTable({
                     <Input
                         isClearable
                         className="w-full sm:max-w-[15%]"
-                        placeholder="Search by server name..."
+                        placeholder="Search..."
                         startContent={<SearchIcon />}
                         value={filterValue}
                         onClear={() => onClear()}
