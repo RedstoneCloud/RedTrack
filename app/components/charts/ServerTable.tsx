@@ -52,7 +52,7 @@ export function ServerTable({
     });
     const [page, setPage] = React.useState(1);
 
-    const rowsPerPage = 10;
+    const rowsPerPage = 7;
 
     const hasSearchFilter = Boolean(filterValue);
 
@@ -75,24 +75,25 @@ export function ServerTable({
         return filteredData;
     }, [data, filterValue]);
 
-    const pages = Math.ceil(filteredItems.length / rowsPerPage);
+    
+    const sortedItems = React.useMemo(() => {
+        return [...filteredItems].sort((a, b) => {
+            const first = a[sortDescriptor.column];
+            const second = b[sortDescriptor.column];
+            const cmp = first < second ? -1 : first > second ? 1 : 0;
+            
+            return sortDescriptor.direction === "descending" ? -cmp : cmp;
+        });
+    }, [sortDescriptor, filteredItems]);
+    
+    const pages = Math.ceil(sortedItems.length / rowsPerPage);
 
     const items = React.useMemo(() => {
         const start = (page - 1) * rowsPerPage;
         const end = start + rowsPerPage;
-
-        return filteredItems.slice(start, end);
-    }, [page, filteredItems, rowsPerPage]);
-
-    const sortedItems = React.useMemo(() => {
-        return [...items].sort((a, b) => {
-            const first = a[sortDescriptor.column];
-            const second = b[sortDescriptor.column];
-            const cmp = first < second ? -1 : first > second ? 1 : 0;
-
-            return sortDescriptor.direction === "descending" ? -cmp : cmp;
-        });
-    }, [sortDescriptor, items]);
+    
+        return sortedItems.slice(start, end);
+    }, [page, sortedItems, rowsPerPage]);
 
     const renderCell = React.useCallback((server: any, columnKey: any) => {
         const cellValue = (
@@ -262,7 +263,7 @@ export function ServerTable({
                     </TableColumn>
                 )}
             </TableHeader>
-            <TableBody emptyContent={"No data found"} items={sortedItems}>
+            <TableBody emptyContent={"No data found"} items={items}>
                 {(item) => (
                     <TableRow key={item.internalId}>
                         {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
