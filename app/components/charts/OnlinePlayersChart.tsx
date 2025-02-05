@@ -2,7 +2,9 @@ import Chart from "chart.js/auto";
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import React, { useEffect, useRef } from "react";
 
+
 export function OnlinePlayersChart({ data }: { data: any }) {
+    Chart.register(require("chartjs-plugin-zoom").default)
     const chartRef = useRef<Chart | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -14,7 +16,7 @@ export function OnlinePlayersChart({ data }: { data: any }) {
             let serverData = data.data[server];
 
             let serverDataset = {
-                label: server,
+                label: serverData.name || server,
                 data: serverData.pings.map((point: any) => ({
                     x: point.timestamp,
                     y: point.count
@@ -33,6 +35,7 @@ export function OnlinePlayersChart({ data }: { data: any }) {
             type: 'line',
             data: { datasets },
             options: {
+                animation: false,
                 maintainAspectRatio: false,
                 responsive: true,
                 plugins: {
@@ -48,6 +51,28 @@ export function OnlinePlayersChart({ data }: { data: any }) {
                         align: "end",
                         position: "bottom",
                     },
+                    tooltip: {
+                        position: 'nearest',
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: "rgba(0,0,0,0.8)",
+                        titleColor: "white",
+                        bodyColor: "white",
+                        footerColor: "white",
+                        itemSort: (a: any, b: any) => b.parsed.y - a.parsed.y,
+                    },
+                    zoom: {
+                        zoom: {
+                            drag: {
+                                enabled: true,
+                                threshold: 10
+                            },
+                            pan: {
+                                enabled: true
+                            },
+                            mode: 'xy',
+                        },
+                    }
                 },
                 interaction: {
                     mode: "index",
@@ -62,7 +87,8 @@ export function OnlinePlayersChart({ data }: { data: any }) {
                         ticks: {
                             color: "rgba(255,255,255,.7)",
                             beginAtZero: true,
-                            stepSize: 1,
+                            //stepsize: if there is one with more then 10, use 10 as stepsize, if there is one with over 100, use 100 as stepsize, and so on. default is 1. do NEVER use numbers like 300, 60, 9 etc. only starting with 1 followed by zeroes
+                            stepSize: Math.pow(10, Math.floor(Math.log10(Math.max(...datasets.map((dataset: any) => Math.max(...dataset.data.map((point: any) => point.y))))))),
                             callback: (value: any) => {
                                 return value < 0 ? 0 : value; // Prevents negative values
                             },
@@ -77,14 +103,15 @@ export function OnlinePlayersChart({ data }: { data: any }) {
                     x: {
                         type: 'time',
                         time: {
-                            tooltipFormat: 'mm:ss',
+                            tooltipFormat: 'll hh:mm:ss',
+                            //allow tooltip to be multiple next to each other
+
                             displayFormats: {
                                 minute: 'll',
                                 hour: 'll HH:mm',
-                                day: 'll',
-                                week: 'll',
-                                month: 'll',
-                                year: 'll',
+                                day: 'll HH:mm',
+                                month: 'll HH:mm',
+                                year: 'll HH:mm',
                             },
                             unit: data.type,
                         },
@@ -129,7 +156,20 @@ export function OnlinePlayersChart({ data }: { data: any }) {
             <div className="p-4 flex-auto">
                 {/* Chart */}
                 <div>
-                    <canvas ref={canvasRef}></canvas>
+                    <canvas ref={canvasRef}
+                    onDoubleClick={() => {
+                        let chart = Chart.instances['0'];
+                        // @ts-ignore
+                        chart.options.scales.x.min = undefined;
+                        // @ts-ignore
+                        chart.options.scales.x.max = undefined;
+                        // @ts-ignore
+                        chart.options.scales.y.min = undefined;
+                        // @ts-ignore
+                        chart.options.scales.y.max = undefined;
+                        chart.update();
+                    }}
+                    ></canvas>
                 </div>
             </div>
         </div>

@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/router";
-import { Card, CardBody, CardFooter, CardHeader } from "@heroui/react";
-import { OnlinePlayersChart } from "@/components/charts/OnlinePlayersChart";
-import { ServerTable } from "@/components/charts/ServerTable";
-import { Preferences } from '@capacitor/preferences';
+import React, {useEffect, useState} from "react";
+import {useRouter} from "next/router";
+import {Card, CardBody, CardFooter, CardHeader} from "@heroui/react";
+import {OnlinePlayersChart} from "@/components/charts/OnlinePlayersChart";
+import {ServerTable} from "@/components/charts/ServerTable";
+import {Preferences} from "@capacitor/preferences";
 
 type TableRow = {
     internalId: string;
@@ -24,12 +24,12 @@ export default function Dashboard() {
     let router = useRouter();
 
     let [data, setData] = useState({
-        type: "hour"
+        type: "day"
     } as any);
 
     let [tableData, setTableData] = useState<TableRow[]>([]);
     let [tableData_, setTableData_] = useState<TableRow[]>([]);
-    let [fromDate, setFromDate] = useState(new Date().getTime() - 60 * 1000 * 5)
+    let [fromDate, setFromDate] = useState(new Date().getTime() - 60 * 1000 * 60 * 12)
     let [toDate, setToDate] = useState(new Date().getTime());
 
     const [selectedInternalIds, setSelectedInternalIds] = useState<Set<any>>(new Set([]));
@@ -37,79 +37,83 @@ export default function Dashboard() {
     const pingRate = 3000;
 
     async function reloadData() {
-        if (token != null) {
-            fetch(url + "/api/stats/latest", {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'authorization': 'Bearer ' + token
-                }
-            }).then(response => response.json()).then((dat) => {
-                setTableData_((prevTableData_) => {
-                    const tableDataMap = prevTableData_ && prevTableData_.length > 0 ? new Map(prevTableData_.map((item) => [item.internalId, item])) : null;
-
-                    const updatedData = dat.map((item: TableRow) => {
-                        const previousData = tableDataMap ? tableDataMap.get(item.internalId) : null;
-    
-                        let playerCountDevelopment = "stagnant";
-                        if (previousData) {
-                            if (item.playerCount > previousData.playerCount) {
-                                playerCountDevelopment = "increasing";
-                            } else if (item.playerCount < previousData.playerCount) {
-                                playerCountDevelopment = "decreasing";
-                            }
-                        }
-    
-                        return {
-                            ...item,
-                            playerCountDevelopment,
-                        };
-                    });
-
-                    setTableData(updatedData);
-                    return updatedData;
-                })
-            });
-
-            fetch(url + '/api/stats/all?from=' + fromDate + '&to=' + toDate, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'authorization': 'Bearer ' + token
-                }
-            }).then(response => response.json()).then((dat) => setData({ ...data, ...dat }))
-        }
-    }
-
-    useEffect(() => {
-        Preferences.get({ key: 'servers' }).then(async (dat) => {
+        await Preferences.get({ key: 'servers' }).then(async (dat) => {
             let servers = await JSON.parse(dat.value || "[]")
             let id = parseInt(router.query.server as string) || 0;
             let server = servers[id];
             if (server) {
-                setToken(server.token);
-                setUrl(server.url);
+                let tok = servers[id].token
+                let ur = servers[id].url
 
-                const intervalId = setInterval(async () => {
-                    try {
-                        reloadData();
-                    } catch (e) {
-                        console.log(e)
-                        clearInterval(intervalId)
-                    }
-                }, pingRate);
+                setToken(tok)
+                setUrl(ur)
 
-                reloadData();
+                if (tok != null && ur != null) {
+                    fetch(ur + "/api/stats/latest", {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'authorization': 'Bearer ' + tok
+                        }
+                    }).then(response => response.json()).then((dat) => {
+                        setTableData_((prevTableData_) => {
+                            const tableDataMap = prevTableData_ && prevTableData_.length > 0 ? new Map(prevTableData_.map((item) => [item.internalId, item])) : null;
 
-                return () => clearInterval(intervalId);
+                            const updatedData = dat.map((item: TableRow) => {
+                                const previousData = tableDataMap ? tableDataMap.get(item.internalId) : null;
+
+                                let playerCountDevelopment = "stagnant";
+                                if (previousData) {
+                                    if (item.playerCount > previousData.playerCount) {
+                                        playerCountDevelopment = "increasing";
+                                    } else if (item.playerCount < previousData.playerCount) {
+                                        playerCountDevelopment = "decreasing";
+                                    }
+                                }
+
+                                return {
+                                    ...item,
+                                    playerCountDevelopment,
+                                };
+                            });
+
+                            setTableData(updatedData);
+                            return updatedData;
+                        })
+                    });
+
+                    fetch(ur + '/api/stats/all?from=' + fromDate + '&to=' + toDate, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'authorization': 'Bearer ' + tok
+                        }
+                    }).then(response => response.json()).then((dat) => setData({ ...data, ...dat }))
+                }
             }
-            else
-                setToken(null);
         });
+    }
+
+    useEffect(() => {
+        const intervalId = setInterval(async () => {
+            try {
+                reloadData();
+            } catch (e) {
+                console.log(e)
+                clearInterval(intervalId)
+            }
+        }, pingRate);
+
+        console.log("pirst ping")
+        reloadData();
+
+        return () => clearInterval(intervalId);
     }, [router.query, router, fromDate, toDate]);
 
+
     if (!token) {
-        return (<div className="flex flex-col items-center justify-center py-2 h-screen min-w-96 w-96 max-w-96">Server does not exist. Please go back.</div>)
+        return (<div className="flex flex-col items-center justify-center py-2 h-screen min-w-96 w-96 max-w-96">Loading
+            server...</div>)
     }
 
     return (
@@ -122,7 +126,7 @@ export default function Dashboard() {
                         </h2>
                     </CardHeader>
                     <CardBody className="p-0">
-                        <OnlinePlayersChart data={data} />
+                        <OnlinePlayersChart data={data}/>
                     </CardBody>
                     <CardFooter>
                         <h2 className="text-blueGray-100 mb-1 text-xs font-semibold">
@@ -143,7 +147,8 @@ export default function Dashboard() {
             <div>
                 <Card>
                     <CardBody className="overflow-y-scroll">
-                        <ServerTable url={url} token={token} data={tableData} onSelectedInternalIdsChange={setSelectedInternalIds} />
+                        <ServerTable url={url} token={token} data={tableData}
+                                     onSelectedInternalIdsChange={setSelectedInternalIds}/>
                     </CardBody>
                 </Card>
             </div>

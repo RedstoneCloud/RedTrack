@@ -135,7 +135,7 @@ export function ServerTable({
                             text-${server.playerCountDevelopment === 'stagnant' ? 
                                 'default-400' : 
                                 server.playerCountDevelopment === 'increasing' ? 'success-400' : 'danger'}  
-                            ${server.playerCountDevelopment !== 'stagnant' ? (server.playerCountDevelopment === 'increasing' ? '-' : '') + 'rotate-45' : ''}`} />
+                            ${server.playerCountDevelopment !== 'stagnant' ? (server.playerCountDevelopment === 'increasing' ? '-rotate-45' : 'rotate-45') : ''}`} />
                     </div>
                 )
             case "dailyPeak":

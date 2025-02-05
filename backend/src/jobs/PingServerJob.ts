@@ -20,8 +20,10 @@ async function pingAll() {
     let data = {} as any;
 
     for(let s in (await Server.find())) {
-        let srv = (await Server.find())[s];
-        data[srv._id.toString()] = await pingServer({ip: srv.ip, port: srv.port, name: srv.name, serverId: srv._id} as any as ServerData);
+        try {
+            let srv = (await Server.find())[s];
+            data[srv._id.toString()] = await pingServer({ip: srv.ip, port: srv.port, name: srv.name, serverId: srv._id} as any as ServerData);
+        } catch(e) {}
     }
 
     await new Pings({

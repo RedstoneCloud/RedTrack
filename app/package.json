@@ -23,6 +23,7 @@
     "bcryptjs": "^2.4.3",
     "chart.js": "^4.4.6",
     "chartjs-adapter-dayjs-4": "^1.0.4",
+    "chartjs-plugin-zoom": "^2.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "crypto": "^1.0.1",

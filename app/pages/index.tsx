@@ -94,8 +94,8 @@ export default function Home() {
                     <div className="inline-flex gap-2">
                         <Button key={index} variant="bordered" className="w-full" onPress={() => {
                             //reload the page
-                            router.push("/dashboard?server=" + index);
                             if(!Capacitor.isNativePlatform()) router.reload()
+                            router.push("/dashboard?server=" + index);
                         }}>
                             {server.url}
                         </Button>
