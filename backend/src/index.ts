@@ -3,6 +3,7 @@ import {pingAll} from "./jobs/PingServerJob";
 import {connect} from "mongoose";
 import Users from "./models/Users";
 import {hashPassword} from "./utils/Encryption";
+import Permissions from "./utils/Permissions";
 
 config();
 
@@ -22,7 +23,7 @@ async function boot() {
         await new Users({
             name: "admin",
             password: pwData,
-            permissions: 999 //TODO: Put in actual permissions
+            permissions: Permissions.all
         }).save();
     }
 

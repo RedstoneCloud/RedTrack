@@ -24,6 +24,7 @@ export function AddServer({
     const [serverName, setServerName] = React.useState("");
     const [serverIP, setServerIP] = React.useState("");
     const [serverPort, setServerPort] = React.useState("");
+    const [error, setError] = React.useState("");
 
     const handleAddServer = async () => {
         const formData = {
@@ -32,20 +33,27 @@ export function AddServer({
             serverPort
         };
 
-        onOpenChange();
+
 
         if (!url) { // TODO: Add toasts - not yet added within heroui
             return;
         }
 
-        fetch(url + "/api/servermanage/create", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'authorization': 'Bearer ' + token
-            },
-            body: JSON.stringify(formData)
-        })
+        try {
+            fetch(url + "/api/servermanage/create", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify(formData)
+            }).then(d => d.json()).then(data => {
+               if(data.error) setError(data.error);
+               else onOpenChange();
+            });
+        } catch (e : any) {
+            setError(e.toString());
+        }
     };
 
     return (
@@ -53,12 +61,18 @@ export function AddServer({
             <Button color="primary" onPress={onOpen} endContent={<PlusIcon/>}>
                 Add server
             </Button>
-            <Modal isOpen={isOpen} onOpenChange={onOpenChange} placement="top-center">
+            <Modal isOpen={isOpen} onOpenChange={() => {
+                onOpenChange();
+                setError("");
+            }} placement="top-center">
                 <ModalContent>
                     {(onClose) => (
                         <>
-                            <ModalHeader className="flex flex-col gap-1">Add server</ModalHeader>
+                            <ModalHeader className="flex flex-col gap-1">
+                                Add server
+                            </ModalHeader>
                             <ModalBody>
+                                <p className="text-red-500">{error}</p>
                                 <Input
                                     label="Server Name"
                                     placeholder="The name of the server"
@@ -79,7 +93,7 @@ export function AddServer({
                                 />
                             </ModalBody>
                             <ModalFooter>
-                                <Button color="danger" variant="flat" onPress={onClose}>
+                            <Button color="danger" variant="flat" onPress={onClose}>
                                     Close
                                 </Button>
                                 <Button color="primary" onPress={handleAddServer}>

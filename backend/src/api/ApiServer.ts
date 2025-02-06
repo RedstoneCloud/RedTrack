@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import fs from 'fs';
 import cors from 'cors';
 import Sessions from "../models/Sessions";
+import Users from "../models/Users";
 
 const app = express();
 const port = 3001;
@@ -49,6 +50,15 @@ async function requiresAuth(req : Request, res : Response, next : Function) {
         res.status(401).send({ message: 'Unauthorized' });
         return
     }
+
+    let user = await Users.findOne({_id: session.userId});
+    if(!user) {
+        res.status(401).send({ message: 'Unauthorized' });
+        return
+    }
+
+    // @ts-ignore
+    req.user = user;
 
     next();
 

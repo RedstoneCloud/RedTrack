@@ -30,6 +30,7 @@ export default function Dashboard() {
     let [tableData, setTableData] = useState<TableRow[]>([]);
     let [fromDate, setFromDate] = useState(new Date().getTime() - 60 * 1000 * 60 * 12)
     let [toDate, setToDate] = useState(new Date().getTime());
+    let [dateOverridden, setDateOverridden] = useState(false);
 
     const pingRate = 3000;
 
@@ -84,7 +85,13 @@ export default function Dashboard() {
                             'Content-Type': 'application/json',
                             'authorization': 'Bearer ' + tok
                         }
-                    }).then(response => response.json()).then((dat) => setData({ ...data, ...dat }))
+                    }).then(response => response.json()).then((dat) => setData({type: data.type, ...dat }))
+
+                    if(!dateOverridden) {
+                        //TODO: too much, starts lagging the browser
+                        //setFromDate(new Date().getTime() - 60 * 1000 * 60 * 12)
+                        //setToDate(new Date().getTime())
+                    }
                 }
             }
         });

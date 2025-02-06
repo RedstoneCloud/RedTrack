@@ -1,15 +1,20 @@
 import { Router, Request, Response } from 'express';
 import { requiresAuth } from "../ApiServer";
 import Server from "../../models/Server";
+import Permissions from "../../utils/Permissions";
 
 const router = Router();
 
 router.post('/create', requiresAuth, async (req: Request, res: Response): Promise<void> => {
-    console.log("Creating server");
+    // @ts-ignore
+    if(!Permissions.hasPermission(req.user.permissions, Permissions.ADD_SERVER)) {
+        res.status(403).json({ error: "You do not have permission to create a server" });
+        return;
+    }
     try {
         const { serverName, serverIP, serverPort } = req.body; // TODO: Validation
 
-        if (!serverName || !serverIP || !serverPort) {
+        if (!serverName || !serverIP || !serverPort || isNaN(parseInt(serverPort))) {
             res.status(400).json({ error: "All fields are required" });
             console.log("All fields are required");
             return;

@@ -79,7 +79,7 @@ export default function Home() {
         page === 0 ? (
           <Card className={"page-card"}>
             <CardHeader className="flex flex-col items-center gap-3">
-              <Image src="https://avatars.githubusercontent.com/u/178515769?s=200&v=4" alt="logo" width={200} height={200} className="rounded-lg" />
+              <Image src="/logo.png" alt="logo" width={200} height={200} className="rounded-lg" />
               <h1 className="font-bold text-large">RedTrack</h1>
             </CardHeader>
             <CardBody className="px-3 py-0 text-medium text-default-400">
