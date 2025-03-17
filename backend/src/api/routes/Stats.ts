@@ -53,6 +53,7 @@ router.get('/all', requiresAuth, async (req: Request, res: Response) => {
 
     for (let singlePing of allPings) {
         for (let serverId in singlePing.data) {
+            if(servers[serverId]?.name == null) continue;
             if (!data[serverId]) {
                 data[serverId] = {
                     pings: [],
@@ -83,65 +84,82 @@ router.get('/latest', requiresAuth, async (req: Request, res: Response) => {
         return names;
     });
 
-    const allPings = await Pings.find();
     const currentMillis = Date.now();
-    const latestPings = allPings.filter(ping => {
-        return (currentMillis - ping.timestamp) < (parseInt(process.env.ping_rate as string) * 2);
-    }).sort((a, b) => {
-        return b.timestamp - a.timestamp;
-    });
 
-    let data = {} as any;
-
-    for (let singlePing of allPings) {
-        for (let serverId in singlePing.data) {
-            if (!serverNames[serverId]) continue;
-            if (!data[serverId]) {
-                data[serverId] = {
-                    dailyPeak: 0,
-                    dailyPeakTimestamp: 0,
-                    record: 0,
-                    recordTimestamp: 0,
-                    latestPing: 0,
-                    name: serverNames[serverId] || serverId,
+    const serverStats = await Pings.aggregate([
+        {
+            $match: {
+                timestamp: { $gte: currentMillis - 24 * 60 * 60 * 1000 } // Last 24 hours
+            }
+        },
+        {
+            $project: {
+                serverData: { $objectToArray: "$data" }, // Convert "data" object to an array
+                timestamp: 1
+            }
+        },
+        { $unwind: "$serverData" }, // Flatten the array (each key-value pair becomes a document)
+        {
+            $group: {
+                _id: "$serverData.k", // Group by serverId
+                highestEntry: {
+                    $max: { count: "$serverData.v", timestamp: "$timestamp" } // Find highest count + timestamp
+                },
+                latestEntry: {
+                     $last: { count: "$serverData.v", timestamp: "$timestamp" } // Keep the latest entry
                 }
             }
-
-            if (singlePing.data[serverId] > data[serverId].record) {
-                data[serverId].record = singlePing.data[serverId];
-                data[serverId].recordTimestamp = singlePing.timestamp;
-            }
-
-            if (singlePing.timestamp > currentMillis - 24 * 60 * 60 * 1000) {
-                if (singlePing.data[serverId] > data[serverId].dailyPeak) {
-                    data[serverId].dailyPeak = singlePing.data[serverId];
-                    data[serverId].dailyPeakTimestamp = singlePing.timestamp;
-                }
-            }
-
-            if (singlePing.timestamp > data[serverId].latestPing) {
-                data[serverId].latestPing = singlePing.data[serverId];
+        },
+        {
+            $project: {
+                highestCount: "$highestEntry.count",
+                highestTimestamp: "$highestEntry.timestamp",
+                latestCount: "$latestEntry.count",
+                latestTimestamp: "$latestEntry.timestamp"
             }
         }
+    ]);
+
+    let data = [] as any;
+
+    for (let singleData of serverStats) {
+        const result = await Pings.aggregate([
+            {
+                $match: {
+                    [`data.${singleData._id}`]: { $exists: true } // Ensure the field exists
+                }
+            },
+            {
+                $project: {
+                    serverId: `$data.${singleData._id}`,
+                    timestamp: 1
+                }
+            },
+            {
+                $sort: { serverId: -1 }
+            },
+            {
+                $limit: 1
+            }
+        ]);
+
+        const record = result.length > 0 ? result[0] : null;
+
+        if(serverNames[singleData._id] == null) continue;
+
+        data.push({
+            internalId: singleData._id,
+            server: serverNames[singleData._id] || singleData._id,
+            playerCount: singleData.latestCount,
+            dailyPeak: singleData.highestCount,
+            dailyPeakTimestamp: singleData.highestTimestamp,
+            record: record ? record.serverId : null,
+            recordTimestamp: record ? record.timestamp : null,
+            outdated: (currentMillis - singleData.latestTimestamp) > (parseInt(process.env.ping_rate as string) * 2)
+        })
     }
 
-    let finalData = [] as any;
-
-    for (let serverId in data) {
-        finalData.push({
-            internalId: serverId,
-            server: data[serverId].name,
-            playerCount: data[serverId].latestPing,
-            dailyPeak: data[serverId].dailyPeak,
-            dailyPeakTimestamp: data[serverId].dailyPeakTimestamp,
-            record: data[serverId].record,
-            recordTimestamp: data[serverId].recordTimestamp,
-            invalidPings: !data[serverId].latestPing,
-            outdated: (currentMillis - data[serverId].latestPing.timestamp) > (parseInt(process.env.ping_rate as string) * 2)
-        });
-    }
-
-    res.json(finalData);
+    res.json(data);
 });
 
 export default router;
