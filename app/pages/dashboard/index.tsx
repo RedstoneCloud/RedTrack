@@ -75,6 +75,15 @@ export default function Dashboard() {
                 setUrl(ur)
 
                 if (tok != null && ur != null) {
+                    const now = Date.now();
+                    const effectiveFrom = dateOverridden ? fromDate : now - rangeMs;
+                    const effectiveTo = dateOverridden ? toDate : now;
+
+                    if (!dateOverridden) {
+                        setFromDate(effectiveFrom);
+                        setToDate(effectiveTo);
+                    }
+
                     fetch(ur + "/api/stats/latest", {
                         method: 'GET',
                         headers: {
@@ -107,19 +116,13 @@ export default function Dashboard() {
                         })
                     });
 
-                    fetch(ur + '/api/stats/all?from=' + fromDate + '&to=' + toDate, {
+                    fetch(ur + '/api/stats/all?from=' + effectiveFrom + '&to=' + effectiveTo, {
                         method: 'GET',
                         headers: {
                             'Content-Type': 'application/json',
                             'authorization': 'Bearer ' + tok
                         }
                     }).then(response => response.json()).then((dat) => setData((prev) => ({ type: prev.type, ...dat })))
-
-                    if (!dateOverridden) {
-                        //TODO: too much, starts lagging the browser
-                        //setFromDate(new Date().getTime() - 60 * 1000 * 60 * 12)
-                        //setToDate(new Date().getTime())
-                    }
                 }
             }
         });
@@ -139,7 +142,7 @@ export default function Dashboard() {
         reloadData();
 
         return () => clearInterval(intervalId);
-    }, [router.query, router, fromDate, toDate]);
+    }, [router.query, router, fromDate, toDate, dateOverridden]);
 
 
     if (!token) {
