@@ -33,7 +33,7 @@ export default function Dashboard() {
     let [dateOverridden, setDateOverridden] = useState(false);
 
     const rangeMs = 12 * 60 * 60 * 1000;
-    const pingRate = 3000;
+    const pingRate = 10000;
 
     const formatRange = (value: number) => new Date(value).toLocaleString();
 
@@ -113,7 +113,7 @@ export default function Dashboard() {
                             'Content-Type': 'application/json',
                             'authorization': 'Bearer ' + tok
                         }
-                    }).then(response => response.json()).then((dat) => setData({ type: data.type, ...dat }))
+                    }).then(response => response.json()).then((dat) => setData((prev) => ({ type: prev.type, ...dat })))
 
                     if (!dateOverridden) {
                         //TODO: too much, starts lagging the browser
