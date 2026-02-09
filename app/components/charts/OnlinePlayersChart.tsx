@@ -124,6 +124,8 @@ export function OnlinePlayersChart({ data }: { data: any }) {
                             },
                             unit: data.type,
                         },
+                        min: data.from,
+                        max: data.to,
                         ticks: {
                             autoSkip: true,
                             color: "white",
@@ -151,6 +153,8 @@ export function OnlinePlayersChart({ data }: { data: any }) {
                 if (xScale?.time) {
                     xScale.time.unit = data.type;
                 }
+                xScale.min = data.from;
+                xScale.max = data.to;
             }
             chartRef.current.update('none');
         } else if (canvasRef.current) {
