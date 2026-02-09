@@ -371,7 +371,7 @@ export default function Dashboard() {
                             'Content-Type': 'application/json',
                             'authorization': 'Bearer ' + tok
                         }
-                    }).then(response => response.json()).then((dat) => setData((prev) => ({ type: prev.type, ...dat })))
+                    }).then(response => response.json()).then((dat) => setData((prev: any) => ({ type: prev.type, ...dat })))
                 }
             }
         });
