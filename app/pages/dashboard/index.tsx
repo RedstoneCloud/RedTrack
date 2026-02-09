@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { Card, CardBody, CardFooter, CardHeader } from "@heroui/react";
+import { Button, Card, CardBody, CardFooter, CardHeader } from "@heroui/react";
 import { OnlinePlayersChart } from "@/components/charts/OnlinePlayersChart";
 import { ServerTable } from "@/components/charts/ServerTable";
 import { Preferences } from "@capacitor/preferences";
@@ -32,7 +32,35 @@ export default function Dashboard() {
     let [toDate, setToDate] = useState(new Date().getTime());
     let [dateOverridden, setDateOverridden] = useState(false);
 
+    const rangeMs = 12 * 60 * 60 * 1000;
     const pingRate = 3000;
+
+    const formatRange = (value: number) => new Date(value).toLocaleString();
+
+    const handleRangeShift = (direction: "prev" | "next") => {
+        setDateOverridden(true);
+        const now = Date.now();
+        if (direction === "prev") {
+            setFromDate((prev) => prev - rangeMs);
+            setToDate((prev) => prev - rangeMs);
+            return;
+        }
+
+        setFromDate((prev) => {
+            const nextFrom = prev + rangeMs;
+            return nextFrom > now - rangeMs ? now - rangeMs : nextFrom;
+        });
+        setToDate((prev) => {
+            const nextTo = prev + rangeMs;
+            return nextTo > now ? now : nextTo;
+        });
+    };
+
+    const handleRangeReset = () => {
+        setDateOverridden(false);
+        setFromDate(Date.now() - rangeMs);
+        setToDate(Date.now());
+    };
 
     async function reloadData() {
         await Preferences.get({ key: 'servers' }).then(async (dat) => {
@@ -131,9 +159,27 @@ export default function Dashboard() {
                     <OnlinePlayersChart data={data} />
                 </CardBody>
                 <CardFooter>
-                    <h2 className="text-blueGray-100 mb-1 text-xs font-semibold">
-                        TODO: Navigation
-                    </h2>
+                    <div className="flex w-full flex-col gap-2 text-xs text-blueGray-100">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button size="sm" variant="flat" onPress={() => handleRangeShift("prev")}>
+                                Previous 12h
+                            </Button>
+                            <Button size="sm" variant="flat" onPress={() => handleRangeShift("next")}>
+                                Next 12h
+                            </Button>
+                            <Button size="sm" color="primary" variant="flat" onPress={handleRangeReset}>
+                                Now
+                            </Button>
+                            {dateOverridden ? (
+                                <span className="text-blueGray-100">Custom range</span>
+                            ) : (
+                                <span className="text-blueGray-100">Live range</span>
+                            )}
+                        </div>
+                        <span>
+                            Showing {formatRange(fromDate)} → {formatRange(toDate)}
+                        </span>
+                    </div>
                 </CardFooter>
             </Card>
 
