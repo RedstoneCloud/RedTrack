@@ -22,16 +22,16 @@ import {
     ModalFooter,
 } from "@heroui/react";
 
-import { AddServer } from "../server/AddServer";
+import {AddServer} from "../server/AddServer";
 
-import { ChevronDownIcon, SearchIcon, InfoIcon, ArrowIcon } from "../icons";
+import {ChevronDownIcon, SearchIcon, InfoIcon, ArrowIcon} from "../icons";
 
 const baseColumns = [
-    { name: "Internal ID", uid: "internalId", sortable: true },
-    { name: "Server", uid: "server", sortable: true },
-    { name: "Player Count", uid: "playerCount", sortable: true },
-    { name: "Daily Peak", uid: "dailyPeak", sortable: true },
-    { name: "Record", uid: "record", sortable: true }
+    {name: "Internal ID", uid: "internalId", sortable: true},
+    {name: "Server", uid: "server", sortable: true},
+    {name: "Player Count", uid: "playerCount", sortable: true},
+    {name: "Daily Peak", uid: "dailyPeak", sortable: true},
+    {name: "Record", uid: "record", sortable: true}
 ];
 
 export function capitalize(s: String) {
@@ -41,14 +41,14 @@ export function capitalize(s: String) {
 const INITIAL_VISIBLE_COLUMNS = ["server", "playerCount", "dailyPeak", "record"];
 
 export function ServerTable({
-    url,
-    token,
-    data,
-    canAddServer,
-    canManageServers,
-    serverDetails,
-    onServersChanged,
-}: {
+                                url,
+                                token,
+                                data,
+                                canAddServer,
+                                canManageServers,
+                                serverDetails,
+                                onServersChanged,
+                            }: {
     url: string | null,
     token: string,
     data: any;
@@ -84,7 +84,7 @@ export function ServerTable({
     const tableColumns = React.useMemo(() => {
         const columns = [...baseColumns];
         if (canManageServers) {
-            columns.push({ name: "Actions", uid: "actions", sortable: false });
+            columns.push({name: "Actions", uid: "actions", sortable: false});
         }
         return columns;
     }, [canManageServers]);
@@ -130,7 +130,8 @@ export function ServerTable({
 
     const renderCell = React.useCallback((server: any, columnKey: any) => {
         const cellValue = (
-            <span className={`font-bold ${columnKey != "playerCount" || server.playerCountDevelopment === "stagnant" ? "text-default-700" : ""}`}>
+            <span
+                className={`font-bold ${columnKey != "playerCount" || server.playerCountDevelopment === "stagnant" ? "text-default-700" : ""}`}>
                 {server[columnKey]}
             </span>
         );
@@ -162,7 +163,7 @@ export function ServerTable({
                         server.playerCountDevelopment === 'increasing' ? 'success-400' : 'danger'}`}>
                         <ArrowIcon
                             className={`size-6 
-                            ${server.playerCountDevelopment !== 'stagnant' ? (server.playerCountDevelopment === 'increasing' ? '-rotate-45' : 'rotate-45') : ''}`} />
+                            ${server.playerCountDevelopment !== 'stagnant' ? (server.playerCountDevelopment === 'increasing' ? '-rotate-45' : 'rotate-45') : ''}`}/>
                         {cellValue}
                     </div>
                 )
@@ -171,7 +172,7 @@ export function ServerTable({
                     <div className="flex gap-2 items-center">
                         {cellValue}
                         <Tooltip content={`Peaked at ${new Date(server.dailyPeakTimestamp).toString()}`}>
-                            <button className="text-default-400"><InfoIcon /></button>
+                            <button className="text-default-400"><InfoIcon/></button>
                         </Tooltip>
                     </div>
                 )
@@ -180,7 +181,7 @@ export function ServerTable({
                     <div className="flex gap-2 items-center">
                         {cellValue}
                         <Tooltip content={`Record made on ${new Date(server.recordTimestamp).toString()}`}>
-                            <button className="text-default-400"><InfoIcon /></button>
+                            <button className="text-default-400"><InfoIcon/></button>
                         </Tooltip>
                     </div>
                 )
@@ -281,15 +282,15 @@ export function ServerTable({
                         isClearable
                         className="w-full sm:max-w-[15%]"
                         placeholder="Search..."
-                        startContent={<SearchIcon />}
+                        startContent={<SearchIcon/>}
                         value={filterValue}
                         onClear={() => onClear()}
                         onValueChange={onSearchChange}
                     />
                     <div className="flex gap-3">
-                        <Dropdown >
+                        <Dropdown>
                             <DropdownTrigger className="hidden sm:flex">
-                                <Button endContent={<ChevronDownIcon className="text-small" />} variant="flat">
+                                <Button endContent={<ChevronDownIcon className="text-small"/>} variant="flat">
                                     Columns
                                 </Button>
                             </DropdownTrigger>
@@ -311,7 +312,7 @@ export function ServerTable({
                                 ))}
                             </DropdownMenu>
                         </Dropdown>
-                        {canAddServer ? <AddServer url={url || ""} token={token} /> : null}
+                        {canAddServer ? <AddServer url={url || ""} token={token}/> : null}
                     </div>
                 </div>
             </div>
@@ -343,76 +344,78 @@ export function ServerTable({
     }, [items.length, page, pages, hasSearchFilter]);
 
     return (
-        <Table
-            isHeaderSticky
-            aria-label="Table containing all added servers"
-            bottomContent={bottomContent}
-            bottomContentPlacement="outside"
-            classNames={{
-                wrapper: "max-h-[382px]",
-            }}
-            // @ts-ignore
-            sortDescriptor={sortDescriptor}
-            topContent={topContent}
-            topContentPlacement="outside"
-            // @ts-ignore
-            onSortChange={setSortDescriptor}
-        >
-            <TableHeader columns={headerColumns}>
-                {(column) => (
-                    <TableColumn
-                        key={column.uid}
-                        allowsSorting={column.sortable}
-                    >
-                        {column.name}
-                    </TableColumn>
-                )}
-            </TableHeader>
-            <TableBody emptyContent={"No data found"} items={items}>
-                {(item) => (
-                    <TableRow key={item.internalId}>
-                        {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
-                    </TableRow>
-                )}
-            </TableBody>
-        </Table>
-        <Modal isOpen={!!editServerId} onOpenChange={() => setEditServerId(null)} placement="top-center">
-            <ModalContent>
-                {(onClose) => (
-                    <>
-                        <ModalHeader className="flex flex-col gap-1">Edit server</ModalHeader>
-                        <ModalBody>
-                            {editError ? <p className="text-red-500">{editError}</p> : null}
-                            <Input
-                                label="Server Name"
-                                variant="bordered"
-                                value={editName}
-                                onChange={(e) => setEditName(e.target.value)}
-                            />
-                            <Input
-                                label="Server Address"
-                                variant="bordered"
-                                value={editIP}
-                                onChange={(e) => setEditIP(e.target.value)}
-                            />
-                            <Input
-                                label="Port"
-                                variant="bordered"
-                                value={editPort}
-                                onChange={(e) => setEditPort(e.target.value)}
-                            />
-                        </ModalBody>
-                        <ModalFooter>
-                            <Button variant="flat" onPress={onClose} isDisabled={isSaving}>
-                                Cancel
-                            </Button>
-                            <Button color="primary" onPress={handleSaveEdit} isLoading={isSaving}>
-                                Save
-                            </Button>
-                        </ModalFooter>
-                    </>
-                )}
-            </ModalContent>
-        </Modal>
+        <>
+            <Table
+                isHeaderSticky
+                aria-label="Table containing all added servers"
+                bottomContent={bottomContent}
+                bottomContentPlacement="outside"
+                classNames={{
+                    wrapper: "max-h-[382px]",
+                }}
+                // @ts-ignore
+                sortDescriptor={sortDescriptor}
+                topContent={topContent}
+                topContentPlacement="outside"
+                // @ts-ignore
+                onSortChange={setSortDescriptor}
+            >
+                <TableHeader columns={headerColumns}>
+                    {(column) => (
+                        <TableColumn
+                            key={column.uid}
+                            allowsSorting={column.sortable}
+                        >
+                            {column.name}
+                        </TableColumn>
+                    )}
+                </TableHeader>
+                <TableBody emptyContent={"No data found"} items={items}>
+                    {(item) => (
+                        <TableRow key={item.internalId}>
+                            {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+                        </TableRow>
+                    )}
+                </TableBody>
+            </Table>
+            <Modal isOpen={!!editServerId} onOpenChange={() => setEditServerId(null)} placement="top-center">
+                <ModalContent>
+                    {(onClose) => (
+                        <>
+                            <ModalHeader className="flex flex-col gap-1">Edit server</ModalHeader>
+                            <ModalBody>
+                                {editError ? <p className="text-red-500">{editError}</p> : null}
+                                <Input
+                                    label="Server Name"
+                                    variant="bordered"
+                                    value={editName}
+                                    onChange={(e) => setEditName(e.target.value)}
+                                />
+                                <Input
+                                    label="Server Address"
+                                    variant="bordered"
+                                    value={editIP}
+                                    onChange={(e) => setEditIP(e.target.value)}
+                                />
+                                <Input
+                                    label="Port"
+                                    variant="bordered"
+                                    value={editPort}
+                                    onChange={(e) => setEditPort(e.target.value)}
+                                />
+                            </ModalBody>
+                            <ModalFooter>
+                                <Button variant="flat" onPress={onClose} isDisabled={isSaving}>
+                                    Cancel
+                                </Button>
+                                <Button color="primary" onPress={handleSaveEdit} isLoading={isSaving}>
+                                    Save
+                                </Button>
+                            </ModalFooter>
+                        </>
+                    )}
+                </ModalContent>
+            </Modal>
+        </>
     );
 }

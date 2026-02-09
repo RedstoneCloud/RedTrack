@@ -106,7 +106,7 @@ router.patch('/:id/password', requiresAuth, async (req: Request, res: Response):
         return;
     }
 
-    user.password = await hashPassword(newPassword);
+    user.password = await hashPassword(newPassword) as string;
     await user.save();
     res.status(200).json({ message: "Password updated" });
 });
