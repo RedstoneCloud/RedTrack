@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import {
     Button,
@@ -305,10 +305,10 @@ export default function Dashboard() {
 
                 if (tok != null && ur != null) {
                     const now = Date.now();
-                    const effectiveFrom = dateOverridden ? fromDate : now - rangeMs;
-                    const effectiveTo = dateOverridden ? toDate : now;
+                    const effectiveFrom = dateOverriddenRef.current ? fromDateRef.current : now - rangeMs;
+                    const effectiveTo = dateOverriddenRef.current ? toDateRef.current : now;
 
-                    if (!dateOverridden) {
+                    if (!dateOverriddenRef.current) {
                         setFromDate(effectiveFrom);
                         setToDate(effectiveTo);
                     }
@@ -371,7 +371,7 @@ export default function Dashboard() {
         reloadData();
 
         return () => clearInterval(intervalId);
-    }, [router.query, router, fromDate, toDate, dateOverridden]);
+    }, [router.query, router]);
 
     useEffect(() => {
         if (!token || !url) return;
@@ -635,3 +635,18 @@ export default function Dashboard() {
         </>
     );
 }
+    const fromDateRef = useRef(fromDate);
+    const toDateRef = useRef(toDate);
+    const dateOverriddenRef = useRef(dateOverridden);
+
+    useEffect(() => {
+        fromDateRef.current = fromDate;
+    }, [fromDate]);
+
+    useEffect(() => {
+        toDateRef.current = toDate;
+    }, [toDate]);
+
+    useEffect(() => {
+        dateOverriddenRef.current = dateOverridden;
+    }, [dateOverridden]);
