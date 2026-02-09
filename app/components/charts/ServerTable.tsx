@@ -14,14 +14,19 @@ import {
     DropdownItem,
     Pagination,
     Tooltip,
-    Chip
+    Chip,
+    Modal,
+    ModalContent,
+    ModalHeader,
+    ModalBody,
+    ModalFooter,
 } from "@heroui/react";
 
 import { AddServer } from "../server/AddServer";
 
 import { ChevronDownIcon, SearchIcon, InfoIcon, ArrowIcon } from "../icons";
 
-export const columns = [
+const baseColumns = [
     { name: "Internal ID", uid: "internalId", sortable: true },
     { name: "Server", uid: "server", sortable: true },
     { name: "Player Count", uid: "playerCount", sortable: true },
@@ -39,10 +44,18 @@ export function ServerTable({
     url,
     token,
     data,
+    canAddServer,
+    canManageServers,
+    serverDetails,
+    onServersChanged,
 }: {
     url: string | null,
     token: string,
     data: any;
+    canAddServer: boolean;
+    canManageServers: boolean;
+    serverDetails: Record<string, { name: string; ip: string; port: number; color: string }>;
+    onServersChanged: () => void;
 }) {
     const [filterValue, setFilterValue] = React.useState("");
     const [visibleColumns, setVisibleColumns] = React.useState(new Set(INITIAL_VISIBLE_COLUMNS));
@@ -51,17 +64,37 @@ export function ServerTable({
         direction: "descending",
     });
     const [page, setPage] = React.useState(1);
+    const [editServerId, setEditServerId] = React.useState<string | null>(null);
+    const [editName, setEditName] = React.useState("");
+    const [editIP, setEditIP] = React.useState("");
+    const [editPort, setEditPort] = React.useState("");
+    const [editError, setEditError] = React.useState("");
+    const [isSaving, setIsSaving] = React.useState(false);
 
     const rowsPerPage = 7;
 
     const hasSearchFilter = Boolean(filterValue);
 
+    React.useEffect(() => {
+        if (canManageServers) {
+            setVisibleColumns(new Set([...INITIAL_VISIBLE_COLUMNS, "actions"]));
+        }
+    }, [canManageServers]);
+
+    const tableColumns = React.useMemo(() => {
+        const columns = [...baseColumns];
+        if (canManageServers) {
+            columns.push({ name: "Actions", uid: "actions", sortable: false });
+        }
+        return columns;
+    }, [canManageServers]);
+
     const headerColumns = React.useMemo(() => {
         // @ts-ignore
-        if (visibleColumns === "all") return columns;
+        if (visibleColumns === "all") return tableColumns;
 
-        return columns.filter((column) => Array.from(visibleColumns).includes(column.uid));
-    }, [visibleColumns]);
+        return tableColumns.filter((column) => Array.from(visibleColumns).includes(column.uid));
+    }, [visibleColumns, tableColumns]);
 
     const filteredItems = React.useMemo(() => {
         let filteredData = [...data];
@@ -151,10 +184,80 @@ export function ServerTable({
                         </Tooltip>
                     </div>
                 )
+            case "actions":
+                return (
+                    <div className="flex gap-2">
+                        <Button size="sm" variant="flat" onPress={() => handleEdit(server.internalId)}>
+                            Edit
+                        </Button>
+                        <Button size="sm" color="danger" variant="flat" onPress={() => handleDelete(server.internalId)}>
+                            Delete
+                        </Button>
+                    </div>
+                )
             default:
                 return cellValue;
         }
-    }, []);
+    }, [serverDetails]);
+
+    const handleEdit = (serverId: string) => {
+        const details = serverDetails[serverId];
+        if (!details) {
+            setEditError("Server details not loaded.");
+            return;
+        }
+        setEditServerId(serverId);
+        setEditName(details.name);
+        setEditIP(details.ip);
+        setEditPort(details.port.toString());
+        setEditError("");
+    };
+
+    const handleDelete = async (serverId: string) => {
+        if (!url) return;
+        const shouldDelete = window.confirm("Are you sure you want to delete this server?");
+        if (!shouldDelete) return;
+
+        await fetch(url + "/api/servermanage/" + serverId, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                "authorization": "Bearer " + token
+            }
+        });
+
+        onServersChanged();
+    };
+
+    const handleSaveEdit = async () => {
+        if (!url || !editServerId) return;
+        setIsSaving(true);
+        setEditError("");
+
+        const response = await fetch(url + "/api/servermanage/" + editServerId, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                "authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                serverName: editName,
+                serverIP: editIP,
+                serverPort: editPort
+            })
+        });
+
+        const json = await response.json();
+        if (!response.ok) {
+            setEditError(json.error || "Unable to update server.");
+            setIsSaving(false);
+            return;
+        }
+
+        setIsSaving(false);
+        setEditServerId(null);
+        onServersChanged();
+    };
 
     const onSearchChange = React.useCallback((value: any) => {
         if (value) {
@@ -199,7 +302,7 @@ export function ServerTable({
                                 // @ts-ignore
                                 onSelectionChange={setVisibleColumns}
                             >
-                                {columns.map((column: any) => (
+                                {tableColumns.map((column: any) => (
                                     column.uid !== "internalId" && (
                                         <DropdownItem key={column.uid} className="capitalize">
                                             {capitalize(column.name)}
@@ -208,7 +311,7 @@ export function ServerTable({
                                 ))}
                             </DropdownMenu>
                         </Dropdown>
-                        <AddServer url={url || ""} token={token} />
+                        {canAddServer ? <AddServer url={url || ""} token={token} /> : null}
                     </div>
                 </div>
             </div>
@@ -219,6 +322,8 @@ export function ServerTable({
         data.length,
         onSearchChange,
         hasSearchFilter,
+        canAddServer,
+        tableColumns
     ]);
 
     const bottomContent = React.useMemo(() => {
@@ -271,5 +376,43 @@ export function ServerTable({
                 )}
             </TableBody>
         </Table>
+        <Modal isOpen={!!editServerId} onOpenChange={() => setEditServerId(null)} placement="top-center">
+            <ModalContent>
+                {(onClose) => (
+                    <>
+                        <ModalHeader className="flex flex-col gap-1">Edit server</ModalHeader>
+                        <ModalBody>
+                            {editError ? <p className="text-red-500">{editError}</p> : null}
+                            <Input
+                                label="Server Name"
+                                variant="bordered"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                            />
+                            <Input
+                                label="Server Address"
+                                variant="bordered"
+                                value={editIP}
+                                onChange={(e) => setEditIP(e.target.value)}
+                            />
+                            <Input
+                                label="Port"
+                                variant="bordered"
+                                value={editPort}
+                                onChange={(e) => setEditPort(e.target.value)}
+                            />
+                        </ModalBody>
+                        <ModalFooter>
+                            <Button variant="flat" onPress={onClose} isDisabled={isSaving}>
+                                Cancel
+                            </Button>
+                            <Button color="primary" onPress={handleSaveEdit} isLoading={isSaving}>
+                                Save
+                            </Button>
+                        </ModalFooter>
+                    </>
+                )}
+            </ModalContent>
+        </Modal>
     );
 }
