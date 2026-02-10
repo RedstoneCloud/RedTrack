@@ -1,5 +1,4 @@
-import type { CapacitorConfig } from '@capacitor/cli';
-import { CapacitorHttp, HttpResponse } from "@capacitor/core";
+import {CapacitorConfig} from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: 'de.redstonecloud.redtrack',
