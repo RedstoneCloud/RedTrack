@@ -50,7 +50,7 @@ export default function Dashboard() {
     let [tableData, setTableData] = useState<TableRow[]>([]);
     let [backendReachable, setBackendReachable] = useState(true);
     let [backendError, setBackendError] = useState("");
-    let [fromDate, setFromDate] = useState(new Date().getTime() - 60 * 1000 * 60 * 12)
+    let [fromDate, setFromDate] = useState(new Date().getTime() - 60 * 1000 * 60 * 6)
     let [toDate, setToDate] = useState(new Date().getTime());
     let [dateOverridden, setDateOverridden] = useState(false);
     let [currentUser, setCurrentUser] = useState<{ id: string; name: string; permissions: number } | null>(null);
@@ -92,7 +92,8 @@ export default function Dashboard() {
         base: "my-2 sm:my-8",
     };
 
-    const rangeMs = 12 * 60 * 60 * 1000;
+    const liveRangeMs = 6 * 60 * 60 * 1000;
+    const rangeShiftMs = 2 * 60 * 60 * 1000;
     const pingRate = 10000;
 
     const formatDateTimeLocal = (value: number) => {
@@ -163,14 +164,15 @@ export default function Dashboard() {
         const rangeNow = Date.now();
 
         if (direction === "prev") {
-            nextFrom = currentFrom - rangeMs;
-            nextTo = currentTo - rangeMs;
+            nextFrom = currentFrom - rangeShiftMs;
+            nextTo = currentTo - rangeShiftMs;
             setDateOverridden(true);
         } else {
-            nextFrom = Math.min(currentFrom + rangeMs, rangeNow - rangeMs);
-            nextTo = Math.min(currentTo + rangeMs, rangeNow);
+            nextFrom = Math.min(currentFrom + rangeShiftMs, rangeNow - (currentTo - currentFrom));
+            nextTo = Math.min(currentTo + rangeShiftMs, rangeNow);
             if (nextTo >= rangeNow - 5000) {
-                nextFrom = rangeNow - rangeMs;
+                const activeWindow = currentTo - currentFrom;
+                nextFrom = rangeNow - activeWindow;
                 nextTo = rangeNow;
                 setDateOverridden(false);
             } else {
@@ -190,7 +192,7 @@ export default function Dashboard() {
         setDateOverridden(false);
         setRangeError("");
         const rangeNow = Date.now();
-        const liveFrom = rangeNow - rangeMs;
+        const liveFrom = rangeNow - liveRangeMs;
         const liveTo = rangeNow;
         setFromDate(liveFrom);
         setToDate(liveTo);
@@ -499,7 +501,7 @@ export default function Dashboard() {
 
                 if (tok != null && ur != null) {
                     const now = Date.now();
-                    const effectiveFrom = dateOverriddenRef.current ? fromDateRef.current : now - rangeMs;
+                    const effectiveFrom = dateOverriddenRef.current ? fromDateRef.current : now - liveRangeMs;
                     const effectiveTo = dateOverriddenRef.current ? toDateRef.current : now;
 
                     if (!dateOverriddenRef.current) {
@@ -663,10 +665,10 @@ export default function Dashboard() {
                     <div className="flex w-full flex-col gap-2 text-xs text-blueGray-100">
                         <div className="flex flex-wrap items-center gap-2">
                             <Button size="sm" variant="flat" onPress={() => handleRangeShift("prev")}>
-                                Previous 12h
+                                Previous 2h
                             </Button>
                             <Button size="sm" variant="flat" isDisabled={!canGoToNextRange} onPress={() => handleRangeShift("next")}>
-                                Next 12h
+                                Next 2h
                             </Button>
                             <Button size="sm" color="primary" variant="flat" onPress={handleRangeReset}>
                                 Now
