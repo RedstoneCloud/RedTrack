@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { PlusIcon } from "@/components/icons";
 import { Preferences } from '@capacitor/preferences';
 import { useRouter } from "next/router";
-import { PencilIcon, TrashIcon } from "lucide-react";
+import { MessageCircleIcon, PencilIcon, TrashIcon } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 
 export default function Home() {
@@ -226,8 +226,10 @@ export default function Home() {
                   className='w-full'
                   variant='flat'
                   color='secondary'
+                  isIconOnly
+                  aria-label='Support on Discord'
                 >
-                  Support on Discord
+                  <MessageCircleIcon size={20} />
                 </Button>
               </div>
             </CardFooter>
