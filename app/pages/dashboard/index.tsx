@@ -23,7 +23,7 @@ import {
 import { OnlinePlayersChart } from "@/components/charts/OnlinePlayersChart";
 import { ServerTable } from "@/components/charts/ServerTable";
 import { Preferences } from "@capacitor/preferences";
-import { Permissions, hasPermission } from "@/lib/permissions";
+import { Permissions, describePermissions, hasPermission, normalizePermissions } from "@/lib/permissions";
 
 type TableRow = {
     internalId: string;
@@ -74,6 +74,12 @@ export default function Dashboard() {
     const [userPasswordTarget, setUserPasswordTarget] = useState<{ id: string; name: string } | null>(null);
     const [userPassword, setUserPassword] = useState("");
     const [isUserSubmitting, setIsUserSubmitting] = useState(false);
+    const [userPermissionTarget, setUserPermissionTarget] = useState<{ id: string; name: string; permissions: number } | null>(null);
+    const [editUserPermissions, setEditUserPermissions] = useState({
+        manageServers: false,
+        manageUsers: false,
+        addServer: false,
+    });
 
     const rangeMs = 3 * 60 * 60 * 1000;
     const pingRate = 10000;
@@ -94,7 +100,7 @@ export default function Dashboard() {
         dateOverriddenRef.current = dateOverridden;
     }, [dateOverridden]);
 
-    const canAddServer = currentUser ? hasPermission(currentUser.permissions, Permissions.ADD_SERVER) : false;
+    const canAddServer = currentUser ? hasPermission(currentUser.permissions, Permissions.ADD_SERVER) || hasPermission(currentUser.permissions, Permissions.SERVER_MANAGEMENT) : false;
     const canManageServers = currentUser ? hasPermission(currentUser.permissions, Permissions.SERVER_MANAGEMENT) : false;
     const canManageUsers = currentUser ? hasPermission(currentUser.permissions, Permissions.USER_MANAGEMENT) : false;
 
@@ -219,14 +225,29 @@ export default function Dashboard() {
         setIsAccountModalOpen(false);
     };
 
+    const getPermissionsFromSelection = (selection: { manageServers: boolean; manageUsers: boolean; addServer: boolean; }) => {
+        const permissions =
+            (selection.manageServers ? Permissions.SERVER_MANAGEMENT : 0) |
+            (selection.manageUsers ? Permissions.USER_MANAGEMENT : 0) |
+            (selection.addServer ? Permissions.ADD_SERVER : 0);
+
+        return normalizePermissions(permissions);
+    };
+
+    const setSelectionFromPermissions = (permissions: number) => {
+        const normalized = normalizePermissions(permissions);
+        return {
+            manageServers: hasPermission(normalized, Permissions.SERVER_MANAGEMENT),
+            manageUsers: hasPermission(normalized, Permissions.USER_MANAGEMENT),
+            addServer: hasPermission(normalized, Permissions.ADD_SERVER),
+        };
+    };
+
     const handleCreateUser = async () => {
         if (!url || !token) return;
         setUserError("");
         setIsUserSubmitting(true);
-        const permissions =
-            (newUserPermissions.manageServers ? Permissions.SERVER_MANAGEMENT : 0) |
-            (newUserPermissions.manageUsers ? Permissions.USER_MANAGEMENT : 0) |
-            (newUserPermissions.addServer ? Permissions.ADD_SERVER : 0);
+        const permissions = getPermissionsFromSelection(newUserPermissions);
 
         const response = await fetch(url + "/api/usersmanage/create", {
             method: "POST",
@@ -293,6 +314,36 @@ export default function Dashboard() {
         setIsUserSubmitting(false);
         setUserPassword("");
         setUserPasswordTarget(null);
+        await loadUsers(url, token);
+    };
+
+
+    const handleUpdateUserPermissions = async () => {
+        if (!url || !token || !userPermissionTarget) return;
+
+        setIsUserSubmitting(true);
+        setUserError("");
+
+        const response = await fetch(url + "/api/usersmanage/" + userPermissionTarget.id + "/permissions", {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                "authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                permissions: getPermissionsFromSelection(editUserPermissions)
+            })
+        });
+
+        const json = await response.json();
+        if (!response.ok) {
+            setUserError(json.error || "Unable to update permissions.");
+            setIsUserSubmitting(false);
+            return;
+        }
+
+        setIsUserSubmitting(false);
+        setUserPermissionTarget(null);
         await loadUsers(url, token);
     };
 
@@ -555,13 +606,18 @@ export default function Dashboard() {
                                         <Checkbox
                                             isSelected={newUserPermissions.manageServers}
                                             onValueChange={(value) =>
-                                                setNewUserPermissions((prev) => ({ ...prev, manageServers: value }))
+                                                setNewUserPermissions((prev) => ({
+                                                    ...prev,
+                                                    manageServers: value,
+                                                    addServer: value ? true : prev.addServer,
+                                                }))
                                             }
                                         >
                                             Manage servers
                                         </Checkbox>
                                         <Checkbox
                                             isSelected={newUserPermissions.addServer}
+                                            isDisabled={newUserPermissions.manageServers}
                                             onValueChange={(value) =>
                                                 setNewUserPermissions((prev) => ({ ...prev, addServer: value }))
                                             }
@@ -593,7 +649,7 @@ export default function Dashboard() {
                                         {(user) => (
                                             <TableRow key={user.id}>
                                                 <TableCell>{user.name}</TableCell>
-                                                <TableCell>{user.permissions}</TableCell>
+                                                <TableCell>{describePermissions(user.permissions)}</TableCell>
                                                 <TableCell>
                                                     <div className="flex flex-wrap gap-2">
                                                         <Button
@@ -605,8 +661,19 @@ export default function Dashboard() {
                                                         </Button>
                                                         <Button
                                                             size="sm"
+                                                            variant="flat"
+                                                            onPress={() => {
+                                                                setUserPermissionTarget({ id: user.id, name: user.name, permissions: user.permissions });
+                                                                setEditUserPermissions(setSelectionFromPermissions(user.permissions));
+                                                            }}
+                                                        >
+                                                            Edit permissions
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
                                                             color="danger"
                                                             variant="flat"
+                                                            isDisabled={currentUser?.id === user.id}
                                                             onPress={() => handleDeleteUser(user.id)}
                                                         >
                                                             Delete
@@ -620,6 +687,56 @@ export default function Dashboard() {
                             </ModalBody>
                             <ModalFooter>
                                 <Button variant="flat" onPress={onClose}>Close</Button>
+                            </ModalFooter>
+                        </>
+                    )}
+                </ModalContent>
+            </Modal>
+            <Modal isOpen={!!userPermissionTarget} onOpenChange={() => setUserPermissionTarget(null)} placement="top-center">
+                <ModalContent>
+                    {(onClose) => (
+                        <>
+                            <ModalHeader className="flex flex-col gap-1">
+                                Edit permissions for {userPermissionTarget?.name}
+                            </ModalHeader>
+                            <ModalBody>
+                                <Checkbox
+                                    isSelected={editUserPermissions.manageServers}
+                                    onValueChange={(value) =>
+                                        setEditUserPermissions((prev) => ({
+                                            ...prev,
+                                            manageServers: value,
+                                            addServer: value ? true : prev.addServer,
+                                        }))
+                                    }
+                                >
+                                    Manage servers
+                                </Checkbox>
+                                <Checkbox
+                                    isSelected={editUserPermissions.addServer}
+                                    isDisabled={editUserPermissions.manageServers}
+                                    onValueChange={(value) =>
+                                        setEditUserPermissions((prev) => ({ ...prev, addServer: value }))
+                                    }
+                                >
+                                    Add servers
+                                </Checkbox>
+                                <Checkbox
+                                    isSelected={editUserPermissions.manageUsers}
+                                    onValueChange={(value) =>
+                                        setEditUserPermissions((prev) => ({ ...prev, manageUsers: value }))
+                                    }
+                                >
+                                    Manage users
+                                </Checkbox>
+                            </ModalBody>
+                            <ModalFooter>
+                                <Button variant="flat" onPress={onClose} isDisabled={isUserSubmitting}>
+                                    Cancel
+                                </Button>
+                                <Button color="primary" onPress={handleUpdateUserPermissions} isLoading={isUserSubmitting}>
+                                    Save permissions
+                                </Button>
                             </ModalFooter>
                         </>
                     )}

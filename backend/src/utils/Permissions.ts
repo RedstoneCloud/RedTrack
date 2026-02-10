@@ -10,6 +10,19 @@ export default class Permissions {
         return (permissions & permission) === permission;
     }
 
+    public static canCreateServer(permissions: number) {
+        return Permissions.hasPermission(permissions, Permissions.ADD_SERVER)
+            || Permissions.hasPermission(permissions, Permissions.SERVER_MANAGEMENT);
+    }
+
+    public static normalize(permissions: number) {
+        if (Permissions.hasPermission(permissions, Permissions.SERVER_MANAGEMENT)) {
+            return Permissions.addPermission(permissions, Permissions.ADD_SERVER);
+        }
+
+        return permissions;
+    }
+
     public static addPermission(permissions: number, permission: number) {
         return permissions | permission;
     }

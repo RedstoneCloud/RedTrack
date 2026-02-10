@@ -51,19 +51,46 @@ router.post('/create', requiresAuth, async (req: Request, res: Response): Promis
         return;
     }
 
+    const parsedPermissions = typeof permissions === "number" ? permissions : Permissions.none;
+
     const hashedPassword = await hashPassword(password);
 
     try {
         const user = await new Users({
             name: trimmedName,
             password: hashedPassword,
-            permissions: typeof permissions === "number" ? permissions : Permissions.none
+            permissions: Permissions.normalize(parsedPermissions)
         }).save();
 
         res.status(201).json({ id: user._id, name: user.name, permissions: user.permissions });
     } catch (error) {
         res.status(500).json({ error: "An error occurred while creating the user" });
     }
+});
+
+router.patch('/:id/permissions', requiresAuth, async (req: Request, res: Response): Promise<void> => {
+    // @ts-ignore
+    if (!Permissions.hasPermission(req.user.permissions, Permissions.USER_MANAGEMENT)) {
+        res.status(403).json({ error: "You do not have permission to update user permissions" });
+        return;
+    }
+
+    const { permissions } = req.body;
+    if (typeof permissions !== "number") {
+        res.status(400).json({ error: "Permissions must be a number" });
+        return;
+    }
+
+    const user = await Users.findById(req.params.id);
+    if (!user) {
+        res.status(404).json({ error: "User not found" });
+        return;
+    }
+
+    user.permissions = Permissions.normalize(permissions);
+    await user.save();
+
+    res.status(200).json({ id: user._id, name: user.name, permissions: user.permissions });
 });
 
 router.post('/change-password', requiresAuth, async (req: Request, res: Response): Promise<void> => {
