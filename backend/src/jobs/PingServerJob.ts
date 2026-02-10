@@ -3,26 +3,28 @@ import { ServerData } from "../../../types/ServerData";
 import Server from '../models/Server';
 import Pings from "../models/Pings";
 
-async function pingServer(data: ServerData) {
+async function pingServer(data: ServerData): Promise<number | null> {
     try {
         let pingData = await ping({
             host: data.ip.valueOf(),
             port: data.port.valueOf()
         })
 
-        return pingData?.playersOnline;
+        return typeof pingData?.playersOnline === "number" ? pingData.playersOnline : null;
     } catch (e) {
-        return 0;
+        return null;
     }
 }
 
 async function pingAll() {
-    let data = {} as any;
+    let data = {} as Record<string, number>;
+    const servers = await Server.find();
 
-    for (let s in (await Server.find())) {
+    for (const srv of servers) {
         try {
-            let srv = (await Server.find())[s];
-            data[srv._id.toString()] = await pingServer({ ip: srv.ip, port: srv.port, name: srv.name, serverId: srv._id } as any as ServerData);
+            const playerCount = await pingServer({ ip: srv.ip, port: srv.port, name: srv.name, serverId: srv._id } as any as ServerData);
+            if (playerCount === null) continue;
+            data[srv._id.toString()] = playerCount;
         } catch (e) { }
     }
 
