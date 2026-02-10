@@ -593,7 +593,16 @@ export function ServerTable({
                     )}
                 </TableBody>
             </Table>
-            <Modal isOpen={!!predictionTarget} onOpenChange={() => setPredictionTarget(null)} placement="top-center" size="4xl">
+            <Modal
+                isOpen={!!predictionTarget}
+                onOpenChange={() => setPredictionTarget(null)}
+                placement="top-center"
+                size="4xl"
+                classNames={{
+                    wrapper: "items-start p-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:items-center sm:p-6",
+                    base: "my-2 sm:my-8",
+                }}
+            >
                 <ModalContent>
                     {(onClose) => (
                         <>
@@ -645,7 +654,15 @@ export function ServerTable({
                     )}
                 </ModalContent>
             </Modal>
-            <Modal isOpen={!!editServerId} onOpenChange={() => setEditServerId(null)} placement="top-center">
+            <Modal
+                isOpen={!!editServerId}
+                onOpenChange={() => setEditServerId(null)}
+                placement="top-center"
+                classNames={{
+                    wrapper: "items-start p-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:items-center sm:p-6",
+                    base: "my-2 sm:my-8",
+                }}
+            >
                 <ModalContent>
                     {(onClose) => (
                         <>
