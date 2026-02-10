@@ -7,12 +7,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "sync": "cp ./rc_logo.png ./android/app/src/main/res/mipmap-hdpi/rc_logo.png && cp ./rc_logo.png ./android/app/src/main/res/mipmap-mdpi/rc_logo.png && cp ./rc_logo.png ./android/app/src/main/res/mipmap-xhdpi/rc_logo.png && cp ./rc_logo.png ./android/app/src/main/res/mipmap-xxhdpi/rc_logo.png && cp ./rc_logo.png ./android/app/src/main/res/mipmap-xxxhdpi/rc_logo.png && npx cap sync"
+    "sync:android": "pnpm exec capacitor-assets generate && pnpm exec cap sync android",
+    "sync:ios": "pnpm exec capacitor-assets generate && pnpm exec cap sync ios"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.1",
     "@capacitor/app": "^7.0.0",
     "@capacitor/core": "^7.0.1",
+    "@capacitor/ios": "^8.0.2",
     "@capacitor/preferences": "^7.0.0",
     "@heroui/button": "^2.2.10",
     "@heroui/card": "^2.2.10",
@@ -41,6 +43,7 @@
     "vercel-geist-icons": "^1.2.2"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^7.0.1",
     "@eslint/eslintrc": "^3",
     "@types/bcrypt": "^5.0.2",
