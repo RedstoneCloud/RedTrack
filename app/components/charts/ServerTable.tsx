@@ -383,13 +383,13 @@ export function ServerTable({
         const hourlyAverage = Object.keys(groupedByHour).reduce((acc: Record<number, number>, hourKey: string) => {
             const hour = Number(hourKey);
             const values = groupedByHour[hour];
-            acc[hour] = values.reduce((sum, value) => sum + value, 0) / values.length;
+            acc[hour] = values.reduce((sum: number, value: number) => sum + value, 0) / values.length;
             return acc;
         }, {});
 
         const dayHourAverage = Object.keys(groupedByDayHour).reduce((acc: Record<string, number>, key: string) => {
             const values = groupedByDayHour[key];
-            acc[key] = values.reduce((sum, value) => sum + value, 0) / values.length;
+            acc[key] = values.reduce((sum: number, value: number) => sum + value, 0) / values.length;
             return acc;
         }, {});
 
@@ -616,7 +616,7 @@ export function ServerTable({
                                                         borderRadius: 10,
                                                     }}
                                                     labelStyle={{ color: chartTheme.tooltipText }}
-                                                    formatter={(value: number) => [value, "Predicted players"]}
+                                                    formatter={(value: number | string) => [String(value), "Predicted players"]}
                                                     labelFormatter={(_, payload: any[]) =>
                                                         payload?.[0]?.payload?.timestamp
                                                             ? new Date(payload[0].payload.timestamp).toLocaleString()
