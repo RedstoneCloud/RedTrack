@@ -11,7 +11,7 @@ export function OnlinePlayersChart({ data }: { data: any }) {
     useEffect(() => {
         if (!data || !data.data) return; // Ensure data is valid
 
-        let datasets = [];
+        let datasets: any[] = [];
         for (let server in data.data) {
             let serverData = data.data[server];
 
@@ -30,6 +30,15 @@ export function OnlinePlayersChart({ data }: { data: any }) {
 
             datasets.push(serverDataset);
         }
+
+        const maxYValue = datasets.length
+            ? Math.max(
+                ...datasets.map((dataset: any) =>
+                    Math.max(...dataset.data.map((point: any) => point.y))
+                )
+            )
+            : 1;
+        const stepSize = Math.pow(10, Math.floor(Math.log10(Math.max(1, maxYValue))));
 
         const options = {
             type: 'line',
@@ -88,7 +97,7 @@ export function OnlinePlayersChart({ data }: { data: any }) {
                             color: "rgba(255,255,255,.7)",
                             beginAtZero: true,
                             //stepsize: if there is one with more then 10, use 10 as stepsize, if there is one with over 100, use 100 as stepsize, and so on. default is 1. do NEVER use numbers like 300, 60, 9 etc. only starting with 1 followed by zeroes
-                            stepSize: Math.pow(10, Math.floor(Math.log10(Math.max(...datasets.map((dataset: any) => Math.max(...dataset.data.map((point: any) => point.y))))))),
+                            stepSize,
                             callback: (value: any) => {
                                 return value < 0 ? 0 : value; // Prevents negative values
                             },
@@ -115,6 +124,8 @@ export function OnlinePlayersChart({ data }: { data: any }) {
                             },
                             unit: data.type,
                         },
+                        min: data.from,
+                        max: data.to,
                         ticks: {
                             autoSkip: true,
                             color: "white",
@@ -135,18 +146,25 @@ export function OnlinePlayersChart({ data }: { data: any }) {
         };
 
         // Destroy previous chart instance before creating a new one
-        if (Chart.instances['0'] != null) {
-            // update data
-            Chart.instances['0'].data.datasets = datasets;
-            Chart.instances['0'].update('none');
+        if (chartRef.current) {
+            chartRef.current.data.datasets = datasets;
+            if (chartRef.current.options?.scales && 'x' in chartRef.current.options.scales) {
+                const xScale = chartRef.current.options.scales.x as any;
+                if (xScale?.time) {
+                    xScale.time.unit = data.type;
+                }
+                xScale.min = data.from;
+                xScale.max = data.to;
+            }
+            chartRef.current.update('none');
         } else if (canvasRef.current) {
-            // @ts-ignore
-            Chart.instances['0'] = new Chart(canvasRef.current, options);
+            chartRef.current = new Chart(canvasRef.current, options as any);
         }
 
         return () => {
             if (chartRef.current) {
                 chartRef.current.destroy();
+                chartRef.current = null;
             }
         };
     }, [data]);
@@ -154,7 +172,8 @@ export function OnlinePlayersChart({ data }: { data: any }) {
     return (
         <canvas ref={canvasRef} className="p-2"
             onDoubleClick={() => {
-                let chart = Chart.instances['0'];
+                let chart = chartRef.current;
+                if (!chart) return;
                 // @ts-ignore
                 chart.options.scales.x.min = undefined;
                 // @ts-ignore
