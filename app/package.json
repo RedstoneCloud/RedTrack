@@ -14,7 +14,7 @@
     "@capacitor/android": "^7.0.1",
     "@capacitor/app": "^7.0.0",
     "@capacitor/core": "^7.0.1",
-    "@capacitor/ios": "^8.0.2",
+    "@capacitor/ios": "^7.0.1",
     "@capacitor/preferences": "^7.0.0",
     "@heroui/button": "^2.2.10",
     "@heroui/card": "^2.2.10",
