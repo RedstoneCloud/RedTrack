@@ -81,6 +81,12 @@ router.patch('/:id/permissions', requiresAuth, async (req: Request, res: Respons
         return;
     }
 
+    // @ts-ignore
+    if (req.user._id.toString() === req.params.id) {
+        res.status(400).json({ error: "You cannot edit your own permissions" });
+        return;
+    }
+
     const user = await Users.findById(req.params.id);
     if (!user) {
         res.status(404).json({ error: "User not found" });

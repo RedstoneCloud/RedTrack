@@ -6,7 +6,6 @@ import { Preferences } from '@capacitor/preferences';
 import { useRouter } from "next/router";
 import { PencilIcon, TrashIcon } from "lucide-react";
 import { LogoDiscord } from 'vercel-geist-icons';
-import { Capacitor } from "@capacitor/core";
 
 export default function Home() {
   type ServerEntry = {
@@ -189,9 +188,7 @@ export default function Home() {
                 {
                   servers.map((server: any, index: any) => (
                     <div className="inline-flex gap-2" key={index}>
-                      <Button key={index} variant="bordered" className="w-full justify-start" onPress={() => {
-                        //reload the page
-                        if (!Capacitor.isNativePlatform()) router.reload()
+                      <Button key={index} variant="bordered" className="w-full justify-start" onClick={() => {
                         router.push("/dashboard?server=" + index);
                       }}>
                         <div className='flex flex-col items-start text-left'>
@@ -199,12 +196,12 @@ export default function Home() {
                           <span className='text-xs text-default-500'>{server.url}</span>
                         </div>
                       </Button>
-                      <Button key={"edit" + index} variant="flat" className="min-w-10" onPress={() => {
+                      <Button key={"edit" + index} variant="flat" className="min-w-10" onClick={() => {
                         openEditForm(server, index);
                       }}>
                         <PencilIcon width={20} />
                       </Button>
-                      <Button key={"del" + index} variant="flat" color="danger" className="min-w-10" onPress={() => {
+                      <Button key={"del" + index} variant="flat" color="danger" className="min-w-10" onClick={() => {
                         deleteServer(index);
                       }}>
                         <TrashIcon width={25} />
@@ -216,7 +213,7 @@ export default function Home() {
             </CardBody>
             <CardFooter>
               <div className='flex w-full gap-2'>
-                <Button color="default" className="w-full" startContent={<PlusIcon />} variant="faded" onPress={openCreateForm}>
+                <Button color="default" className="w-full" startContent={<PlusIcon />} variant="faded" onClick={openCreateForm}>
                   Add new server
                 </Button>
                 <Button
@@ -310,7 +307,7 @@ export default function Home() {
                 {submitting ? "Loading..." : editingIndex === null ? "Submit" : "Save changes"}
               </Button>
 
-              <Button className='w-full sm:w-auto' onPress={() => {
+              <Button className='w-full sm:w-auto' onClick={() => {
                 setPage(0);
                 setEditingIndex(null);
               }} variant="bordered" disabled={submitting}>

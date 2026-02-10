@@ -88,6 +88,7 @@ export function ServerTable({
     const [editIP, setEditIP] = React.useState("");
     const [editPort, setEditPort] = React.useState("");
     const [editBedrock, setEditBedrock] = React.useState(true);
+    const [editColor, setEditColor] = React.useState("#3b82f6");
     const [editError, setEditError] = React.useState("");
     const [isSaving, setIsSaving] = React.useState(false);
     const [predictionTarget, setPredictionTarget] = React.useState<{ id: string; name: string } | null>(null);
@@ -293,6 +294,7 @@ export function ServerTable({
         setEditIP(details.ip);
         setEditPort(details.port.toString());
         setEditBedrock(details.bedrock !== false);
+        setEditColor(details.color || "#3b82f6");
         setEditError("");
     };
 
@@ -459,7 +461,8 @@ export function ServerTable({
                 serverName: editName,
                 serverIP: editIP,
                 serverPort: editPort,
-                bedrock: editBedrock
+                bedrock: editBedrock,
+                color: editColor,
             })
         });
 
@@ -527,7 +530,7 @@ export function ServerTable({
                                 ))}
                             </DropdownMenu>
                         </Dropdown>
-                        {canAddServer ? <AddServer url={url || ""} token={token} /> : null}
+                        {canAddServer ? <AddServer url={url || ""} token={token} onServerAdded={onServersChanged} /> : null}
                     </div>
                 </div>
             </div>
@@ -610,6 +613,9 @@ export function ServerTable({
                             <ModalBody>
                                 {isPredicting ? <p className="text-default-500">Calculating prediction...</p> : null}
                                 {!isPredicting && predictionError ? <p className="text-red-500">{predictionError}</p> : null}
+                                {!isPredicting && !predictionError ? (
+                                    <p className="text-xs text-default-400">Experimental feature: this chart is only an estimate and may differ from actual player counts.</p>
+                                ) : null}
                                 {!isPredicting && !predictionError && predictionSeries.length > 0 ? (
                                     <div className="h-80 w-full rounded-xl border border-default-200 p-2" style={{ background: chartTheme.background }}>
                                         <ResponsiveContainer width="100%" height="100%">
@@ -690,6 +696,13 @@ export function ServerTable({
                                 <Checkbox isSelected={editBedrock} onValueChange={setEditBedrock}>
                                     Bedrock server (disable for Java)
                                 </Checkbox>
+                                <Input
+                                    type="color"
+                                    label="Server color"
+                                    variant="bordered"
+                                    value={editColor}
+                                    onChange={(e) => setEditColor(e.target.value)}
+                                />
                             </ModalBody>
                             <ModalFooter>
                                 <Button variant="flat" onPress={onClose} isDisabled={isSaving}>

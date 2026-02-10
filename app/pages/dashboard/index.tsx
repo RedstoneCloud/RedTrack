@@ -50,7 +50,7 @@ export default function Dashboard() {
     let [tableData, setTableData] = useState<TableRow[]>([]);
     let [backendReachable, setBackendReachable] = useState(true);
     let [backendError, setBackendError] = useState("");
-    let [fromDate, setFromDate] = useState(new Date().getTime() - 60 * 1000 * 60 * 1)
+    let [fromDate, setFromDate] = useState(new Date().getTime() - 60 * 1000 * 60 * 12)
     let [toDate, setToDate] = useState(new Date().getTime());
     let [dateOverridden, setDateOverridden] = useState(false);
     let [currentUser, setCurrentUser] = useState<{ id: string; name: string; permissions: number } | null>(null);
@@ -92,12 +92,26 @@ export default function Dashboard() {
         base: "my-2 sm:my-8",
     };
 
-    const rangeMs = 1 * 60 * 60 * 1000;
+    const rangeMs = 12 * 60 * 60 * 1000;
     const pingRate = 10000;
+
+    const formatDateTimeLocal = (value: number) => {
+        const date = new Date(value);
+        const tzOffset = date.getTimezoneOffset() * 60000;
+        return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+    };
+
+    const parseDateTimeLocal = (value: string) => {
+        const parsed = new Date(value).getTime();
+        return Number.isFinite(parsed) ? parsed : NaN;
+    };
 
     const fromDateRef = useRef(fromDate);
     const toDateRef = useRef(toDate);
     const dateOverriddenRef = useRef(dateOverridden);
+    const [customFromInput, setCustomFromInput] = useState(formatDateTimeLocal(fromDate));
+    const [customToInput, setCustomToInput] = useState(formatDateTimeLocal(toDate));
+    const [rangeError, setRangeError] = useState("");
 
     useEffect(() => {
         fromDateRef.current = fromDate;
@@ -110,6 +124,11 @@ export default function Dashboard() {
     useEffect(() => {
         dateOverriddenRef.current = dateOverridden;
     }, [dateOverridden]);
+
+    useEffect(() => {
+        setCustomFromInput(formatDateTimeLocal(fromDate));
+        setCustomToInput(formatDateTimeLocal(toDate));
+    }, [fromDate, toDate]);
 
     const canAddServer = currentUser ? hasPermission(currentUser.permissions, Permissions.ADD_SERVER) || hasPermission(currentUser.permissions, Permissions.SERVER_MANAGEMENT) : false;
     const canManageServers = currentUser ? hasPermission(currentUser.permissions, Permissions.SERVER_MANAGEMENT) : false;
@@ -169,6 +188,7 @@ export default function Dashboard() {
     const handleRangeReset = async () => {
         if (!url || !token) return;
         setDateOverridden(false);
+        setRangeError("");
         const rangeNow = Date.now();
         const liveFrom = rangeNow - rangeMs;
         const liveTo = rangeNow;
@@ -177,6 +197,31 @@ export default function Dashboard() {
         fromDateRef.current = liveFrom;
         toDateRef.current = liveTo;
         await fetchChartRange(url, token, liveFrom, liveTo);
+    };
+
+    const handleApplyCustomRange = async () => {
+        if (!url || !token) return;
+
+        const parsedFrom = parseDateTimeLocal(customFromInput);
+        const parsedTo = parseDateTimeLocal(customToInput);
+
+        if (!Number.isFinite(parsedFrom) || !Number.isFinite(parsedTo)) {
+            setRangeError("Please choose a valid start and end date/time.");
+            return;
+        }
+
+        if (parsedFrom >= parsedTo) {
+            setRangeError("The start date/time must be before the end date/time.");
+            return;
+        }
+
+        setRangeError("");
+        setDateOverridden(true);
+        setFromDate(parsedFrom);
+        setToDate(parsedTo);
+        fromDateRef.current = parsedFrom;
+        toDateRef.current = parsedTo;
+        await fetchChartRange(url, token, parsedFrom, parsedTo);
     };
 
     const requestBackend = async (activeUrl: string, activeToken: string, path: string, init?: RequestInit) => {
@@ -599,7 +644,7 @@ export default function Dashboard() {
                             User management
                         </Button>
                     ) : null}
-                    <Button color="danger" variant="flat" onPress={handleBack}>
+                    <Button color="danger" variant="flat" onClick={handleBack}>
                         Back
                     </Button>
                 </div>
@@ -618,10 +663,10 @@ export default function Dashboard() {
                     <div className="flex w-full flex-col gap-2 text-xs text-blueGray-100">
                         <div className="flex flex-wrap items-center gap-2">
                             <Button size="sm" variant="flat" onPress={() => handleRangeShift("prev")}>
-                                Previous hour
+                                Previous 12h
                             </Button>
                             <Button size="sm" variant="flat" isDisabled={!canGoToNextRange} onPress={() => handleRangeShift("next")}>
-                                Next hour
+                                Next 12h
                             </Button>
                             <Button size="sm" color="primary" variant="flat" onPress={handleRangeReset}>
                                 Now
@@ -635,6 +680,29 @@ export default function Dashboard() {
                         <span>
                             Showing {formatRange(fromDate)} → {formatRange(toDate)}
                         </span>
+                        <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+                            <Input
+                                type="datetime-local"
+                                label="From"
+                                labelPlacement="outside"
+                                size="sm"
+                                value={customFromInput}
+                                onChange={(event) => setCustomFromInput(event.target.value)}
+                            />
+                            <Input
+                                type="datetime-local"
+                                label="To"
+                                labelPlacement="outside"
+                                size="sm"
+                                value={customToInput}
+                                onChange={(event) => setCustomToInput(event.target.value)}
+                            />
+                            <Button size="sm" color="secondary" variant="flat" className="self-end" onPress={handleApplyCustomRange}>
+                                Apply custom range
+                            </Button>
+                        </div>
+                        {rangeError ? <span className="text-danger-500">{rangeError}</span> : null}
+                        <span className="text-default-400">Applying a custom range disables live chart auto-updates until you press "Now".</span>
                     </div>
                 </CardFooter>
             </Card>
@@ -817,6 +885,7 @@ export default function Dashboard() {
                                                         <Button
                                                             size="sm"
                                                             variant="flat"
+                                                            isDisabled={currentUser?.id === user.id}
                                                             onPress={() => {
                                                                 setUserPermissionTarget({ id: user.id, name: user.name, permissions: user.permissions });
                                                                 setEditUserPermissions(setSelectionFromPermissions(user.permissions));

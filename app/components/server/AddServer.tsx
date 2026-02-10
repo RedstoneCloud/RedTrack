@@ -15,10 +15,12 @@ import { PlusIcon } from "@/components/icons";
 
 export function AddServer({
     url,
-    token
+    token,
+    onServerAdded,
 }: {
     url: string,
-    token: string
+    token: string,
+    onServerAdded?: () => void,
 }) {
 
     const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -26,6 +28,7 @@ export function AddServer({
     const [serverIP, setServerIP] = React.useState("");
     const [serverPort, setServerPort] = React.useState("");
     const [isBedrockServer, setIsBedrockServer] = React.useState(true);
+    const [serverColor, setServerColor] = React.useState(`#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0")}`);
     const [error, setError] = React.useState("");
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -39,6 +42,7 @@ export function AddServer({
         setServerIP("");
         setServerPort("");
         setIsBedrockServer(true);
+        setServerColor(`#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0")}`);
         setError("");
         setIsSubmitting(false);
     };
@@ -63,11 +67,18 @@ export function AddServer({
             return null;
         }
 
+        const colorRegex = /^#[0-9A-Fa-f]{6}$/;
+        if (!colorRegex.test(serverColor)) {
+            setError("Server color must be a valid hex color.");
+            return null;
+        }
+
         return {
             serverName: trimmedName,
             serverIP: trimmedIP,
             serverPort: parsedPort,
             bedrock: isBedrockServer,
+            color: serverColor,
         };
     };
 
@@ -96,6 +107,7 @@ export function AddServer({
                 } else {
                     onOpenChange();
                     resetForm();
+                    onServerAdded?.();
                 }
                 setIsSubmitting(false);
             });
@@ -151,6 +163,13 @@ export function AddServer({
                                 <Checkbox isSelected={isBedrockServer} onValueChange={setIsBedrockServer}>
                                     Bedrock server (disable for Java)
                                 </Checkbox>
+                                <Input
+                                    type="color"
+                                    label="Server color"
+                                    variant="bordered"
+                                    onChange={(e) => setServerColor(e.target.value)}
+                                    value={serverColor}
+                                />
                             </ModalBody>
                             <ModalFooter>
                                 <Button color="danger" variant="flat" onPress={onClose} isDisabled={isSubmitting}>

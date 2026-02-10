@@ -25,6 +25,10 @@ const isValidIpAddress = (value: string): boolean => {
     return ipv4Regex.test(value) || ipv6Regex.test(value);
 };
 
+const isValidHexColor = (value: string): boolean => {
+    return /^#[0-9A-Fa-f]{6}$/.test(value);
+};
+
 router.post('/create', requiresAuth, async (req: Request, res: Response): Promise<void> => {
     // @ts-ignore
     if (!Permissions.canCreateServer(req.user.permissions)) {
@@ -32,11 +36,12 @@ router.post('/create', requiresAuth, async (req: Request, res: Response): Promis
         return;
     }
     try {
-        const { serverName, serverIP, serverPort, bedrock } = req.body;
+        const { serverName, serverIP, serverPort, bedrock, color } = req.body;
         const trimmedServerName = typeof serverName === "string" ? serverName.trim() : "";
         const trimmedServerIP = typeof serverIP === "string" ? serverIP.trim() : "";
         const parsedPort = typeof serverPort === "string" ? parseInt(serverPort, 10) : Number(serverPort);
         const isBedrockServer = parseBedrockFlag(bedrock, true);
+        const parsedColor = typeof color === "string" ? color.trim() : "";
 
         if (!trimmedServerName || !trimmedServerIP || !serverPort || Number.isNaN(parsedPort)) {
             res.status(400).json({ error: "All fields are required" });
@@ -59,11 +64,17 @@ router.post('/create', requiresAuth, async (req: Request, res: Response): Promis
             return;
         }
 
+        if (parsedColor && !isValidHexColor(parsedColor)) {
+            res.status(400).json({ error: "Server color must be a valid hex color" });
+            return;
+        }
+
         await new Server({
             name: trimmedServerName,
             ip: trimmedServerIP,
             port: parsedPort,
-            bedrock: isBedrockServer
+            bedrock: isBedrockServer,
+            ...(parsedColor ? { color: parsedColor } : {}),
         }).save();
 
         console.log("Server created successfully");
@@ -101,11 +112,12 @@ router.patch('/:id', requiresAuth, async (req: Request, res: Response): Promise<
 
     try {
         const { id } = req.params;
-        const { serverName, serverIP, serverPort, bedrock } = req.body;
+        const { serverName, serverIP, serverPort, bedrock, color } = req.body;
         const trimmedServerName = typeof serverName === "string" ? serverName.trim() : "";
         const trimmedServerIP = typeof serverIP === "string" ? serverIP.trim() : "";
         const parsedPort = typeof serverPort === "string" ? parseInt(serverPort, 10) : Number(serverPort);
         const isBedrockServer = parseBedrockFlag(bedrock, true);
+        const parsedColor = typeof color === "string" ? color.trim() : "";
 
         if (!trimmedServerName || !trimmedServerIP || !serverPort || Number.isNaN(parsedPort)) {
             res.status(400).json({ error: "All fields are required" });
@@ -127,13 +139,19 @@ router.patch('/:id', requiresAuth, async (req: Request, res: Response): Promise<
             return;
         }
 
+        if (parsedColor && !isValidHexColor(parsedColor)) {
+            res.status(400).json({ error: "Server color must be a valid hex color" });
+            return;
+        }
+
         const updatedServer = await Server.findByIdAndUpdate(
             id,
             {
                 name: trimmedServerName,
                 ip: trimmedServerIP,
                 port: parsedPort,
-                bedrock: isBedrockServer
+                bedrock: isBedrockServer,
+                ...(parsedColor ? { color: parsedColor } : {}),
             },
             { new: true }
         );
