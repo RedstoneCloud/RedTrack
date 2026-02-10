@@ -422,13 +422,13 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            <Card className="flex-grow min-h-[306px]">
+            <Card className="min-h-[306px] md:h-[420px]">
                 <CardHeader>
                     <h2 className="text-blueGray-100 mb-1 text-xl font-semibold">
                         Currently connected players
                     </h2>
                 </CardHeader>
-                <CardBody className="p-0">
+                <CardBody className="h-full p-0">
                     <OnlinePlayersChart data={data} />
                 </CardBody>
                 <CardFooter>
