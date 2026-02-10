@@ -650,13 +650,13 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            <Card className="min-h-[306px] md:h-[420px]">
+            <Card className="min-h-[520px] md:min-h-[560px]">
                 <CardHeader>
                     <h2 className="text-blueGray-100 mb-1 text-xl font-semibold">
                         Currently connected players
                     </h2>
                 </CardHeader>
-                <CardBody className="h-full p-0">
+                <CardBody className="min-h-[260px] p-0">
                     <OnlinePlayersChart data={data} preserveViewport={!isLiveRange} />
                 </CardBody>
                 <CardFooter>
