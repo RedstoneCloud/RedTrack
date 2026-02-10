@@ -16,20 +16,44 @@ export default function Home() {
 
   }
 
+
+  function getBackendHost(address: string) {
+    try {
+      return new URL(address).host;
+    } catch {
+      return address.replace(/^https?:\/\//, "");
+    }
+  }
+
+  function resolveServerName(server: { name?: string; username?: string; url: string }) {
+    const customName = (server.name || "").trim();
+    if (customName) return customName;
+
+    const username = (server.username || "").trim();
+    if (username) {
+      return `${username}@${getBackendHost(server.url)}`;
+    }
+
+    return getBackendHost(server.url);
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     try {
       e.preventDefault();
       setSubmitting(true)
       const form = e.currentTarget;
       const data = new FormData(form);
-      const url = data.get("url") as string;
+      const url = (data.get("url") as string).trim();
+      const username = (data.get("username") as string).trim();
+      const customName = (data.get("serverName") as string | null)?.trim() || "";
+      const resolvedName = customName || `${username}@${getBackendHost(url)}`;
       const response = await fetch(url + "/api/auth/startSession", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: data.get("username"),
+          name: username,
           password: data.get("password")
         }),
       });
@@ -45,7 +69,9 @@ export default function Home() {
       if (json.success) {
         let servers = JSON.parse((await Preferences.get({ key: "servers" })).value || "[]");
         servers.push({
-          url: url,
+          name: resolvedName,
+          username,
+          url,
           token: json.sessionId
         });
         await Preferences.set({ key: "servers", value: JSON.stringify(servers) });
@@ -74,7 +100,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 px-3 py-4 dark:bg-slate-950">
+    <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 px-3 pb-4 pt-[max(env(safe-area-inset-top),1rem)] dark:bg-slate-950">
       {
         page === 0 ? (
           <Card className={"page-card"}>
@@ -92,12 +118,15 @@ export default function Home() {
                 {
                   servers.map((server: any, index: any) => (
                     <div className="inline-flex gap-2" key={index}>
-                      <Button key={index} variant="bordered" className="w-full" onPress={() => {
+                      <Button key={index} variant="bordered" className="w-full justify-start" onPress={() => {
                         //reload the page
                         if (!Capacitor.isNativePlatform()) router.reload()
                         router.push("/dashboard?server=" + index);
                       }}>
-                        {server.url}
+                        <div className='flex flex-col items-start text-left'>
+                          <span className='font-semibold'>{resolveServerName(server)}</span>
+                          <span className='text-xs text-default-500'>{server.url}</span>
+                        </div>
                       </Button>
                       <Button key={"del" + index} variant="flat" color="danger" className="min-w-10" onPress={() => {
                         deleteServer(index);
@@ -141,6 +170,15 @@ export default function Home() {
                   label={"Backend IP Address"}
                   placeholder="http://localhost:3000"
                   errorMessage="Please enter a valid backend address"
+                  labelPlacement="outside"
+                  disabled={submitting}
+                  className="border-25 border-black" />
+
+                <Input
+                  type="text"
+                  name="serverName"
+                  label={"Server entry name (optional)"}
+                  placeholder="My Production"
                   labelPlacement="outside"
                   disabled={submitting}
                   className="border-25 border-black" />

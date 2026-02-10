@@ -225,7 +225,36 @@ export default function Dashboard() {
         setUsers(json);
     };
 
+    const closeOpenModals = () => {
+        let closedAny = false;
+
+        if (isAccountModalOpen) {
+            setIsAccountModalOpen(false);
+            closedAny = true;
+        }
+
+        if (isUserManagementOpen) {
+            setIsUserManagementOpen(false);
+            closedAny = true;
+        }
+
+        if (userPermissionTarget) {
+            setUserPermissionTarget(null);
+            closedAny = true;
+        }
+
+        if (userPasswordTarget) {
+            setUserPasswordTarget(null);
+            closedAny = true;
+        }
+
+        return closedAny;
+    };
+
     const handleBack = async () => {
+        if (closeOpenModals()) {
+            return;
+        }
         router.push("/");
     };
 
@@ -462,6 +491,20 @@ export default function Dashboard() {
     }, [router.query, router]);
 
     useEffect(() => {
+        router.beforePopState(() => {
+            if (closeOpenModals()) {
+                return false;
+            }
+            return true;
+        });
+
+        return () => {
+            router.beforePopState(() => true);
+        };
+    }, [router, isAccountModalOpen, isUserManagementOpen, userPermissionTarget, userPasswordTarget]);
+
+
+    useEffect(() => {
         if (!token || !url) return;
         loadCurrentUser(url, token);
     }, [token, url]);
@@ -484,7 +527,7 @@ export default function Dashboard() {
 
     return (
         <>
-            <div className="flex flex-col min-h-screen p-3 sm:p-4 space-y-4 pb-[max(env(safe-area-inset-bottom),1rem)]">
+            <div className="flex flex-col min-h-screen p-3 pt-[max(env(safe-area-inset-top),1rem)] sm:p-4 space-y-4 pb-[max(env(safe-area-inset-bottom),1rem)]">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex flex-col">
                     <span className="text-sm text-default-400">Signed in as</span>
