@@ -71,6 +71,7 @@ export default function Dashboard() {
         manageServers: false,
         manageUsers: false,
         addServer: false,
+        cannotChangePassword: false,
     });
     const [userError, setUserError] = useState("");
     const [userPasswordTarget, setUserPasswordTarget] = useState<{ id: string; name: string } | null>(null);
@@ -81,6 +82,7 @@ export default function Dashboard() {
         manageServers: false,
         manageUsers: false,
         addServer: false,
+        cannotChangePassword: false,
     });
 
     const rangeMs = 1 * 60 * 60 * 1000;
@@ -105,6 +107,7 @@ export default function Dashboard() {
     const canAddServer = currentUser ? hasPermission(currentUser.permissions, Permissions.ADD_SERVER) || hasPermission(currentUser.permissions, Permissions.SERVER_MANAGEMENT) : false;
     const canManageServers = currentUser ? hasPermission(currentUser.permissions, Permissions.SERVER_MANAGEMENT) : false;
     const canManageUsers = currentUser ? hasPermission(currentUser.permissions, Permissions.USER_MANAGEMENT) : false;
+    const canChangeOwnPassword = currentUser ? !hasPermission(currentUser.permissions, Permissions.CANNOT_CHANGE_PASSWORD) : false;
 
     const formatRange = (value: number) => new Date(value).toLocaleString();
     const now = Date.now();
@@ -277,7 +280,7 @@ export default function Dashboard() {
     };
 
     const handlePasswordChange = async () => {
-        if (!url || !token) return;
+        if (!url || !token || !canChangeOwnPassword) return;
         if (!currentPassword || !newPassword || newPassword !== confirmPassword) {
             setAccountError("Please provide matching passwords.");
             return;
@@ -307,11 +310,12 @@ export default function Dashboard() {
         setIsAccountModalOpen(false);
     };
 
-    const getPermissionsFromSelection = (selection: { manageServers: boolean; manageUsers: boolean; addServer: boolean; }) => {
+    const getPermissionsFromSelection = (selection: { manageServers: boolean; manageUsers: boolean; addServer: boolean; cannotChangePassword: boolean; }) => {
         const permissions =
             (selection.manageServers ? Permissions.SERVER_MANAGEMENT : 0) |
             (selection.manageUsers ? Permissions.USER_MANAGEMENT : 0) |
-            (selection.addServer ? Permissions.ADD_SERVER : 0);
+            (selection.addServer ? Permissions.ADD_SERVER : 0) |
+            (selection.cannotChangePassword ? Permissions.CANNOT_CHANGE_PASSWORD : 0);
 
         return normalizePermissions(permissions);
     };
@@ -322,6 +326,7 @@ export default function Dashboard() {
             manageServers: hasPermission(normalized, Permissions.SERVER_MANAGEMENT),
             manageUsers: hasPermission(normalized, Permissions.USER_MANAGEMENT),
             addServer: hasPermission(normalized, Permissions.ADD_SERVER),
+            cannotChangePassword: hasPermission(normalized, Permissions.CANNOT_CHANGE_PASSWORD),
         };
     };
 
@@ -352,7 +357,7 @@ export default function Dashboard() {
 
         setNewUserName("");
         setNewUserPassword("");
-        setNewUserPermissions({ manageServers: false, manageUsers: false, addServer: false });
+        setNewUserPermissions({ manageServers: false, manageUsers: false, addServer: false, cannotChangePassword: false });
         setIsUserSubmitting(false);
         await loadUsers(url, token);
     };
@@ -574,9 +579,11 @@ export default function Dashboard() {
                     <span className="text-lg font-semibold">{currentUser?.name || "Loading user..."}</span>
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
-                    <Button variant="flat" onPress={() => setIsAccountModalOpen(true)}>
-                        Change password
-                    </Button>
+                    {canChangeOwnPassword ? (
+                        <Button variant="flat" onPress={() => setIsAccountModalOpen(true)}>
+                            Change password
+                        </Button>
+                    ) : null}
                     {canManageUsers ? (
                         <Button variant="flat" color="secondary" onPress={() => setIsUserManagementOpen(true)}>
                             User management
@@ -747,6 +754,14 @@ export default function Dashboard() {
                                         >
                                             Manage users
                                         </Checkbox>
+                                        <Checkbox
+                                            isSelected={newUserPermissions.cannotChangePassword}
+                                            onValueChange={(value) =>
+                                                setNewUserPermissions((prev) => ({ ...prev, cannotChangePassword: value }))
+                                            }
+                                        >
+                                            Cannot change password
+                                        </Checkbox>
                                     </div>
                                 </div>
                                 <div>
@@ -843,6 +858,14 @@ export default function Dashboard() {
                                     }
                                 >
                                     Manage users
+                                </Checkbox>
+                                <Checkbox
+                                    isSelected={editUserPermissions.cannotChangePassword}
+                                    onValueChange={(value) =>
+                                        setEditUserPermissions((prev) => ({ ...prev, cannotChangePassword: value }))
+                                    }
+                                >
+                                    Cannot change password
                                 </Checkbox>
                             </ModalBody>
                             <ModalFooter>

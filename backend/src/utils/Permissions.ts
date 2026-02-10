@@ -2,6 +2,7 @@ export default class Permissions {
     public static SERVER_MANAGEMENT = 0x1;
     public static USER_MANAGEMENT = 0x2;
     public static ADD_SERVER = 0x4;
+    public static CANNOT_CHANGE_PASSWORD = 0x8;
 
     public static all = Permissions.SERVER_MANAGEMENT | Permissions.USER_MANAGEMENT | Permissions.ADD_SERVER;
     public static none = 0;

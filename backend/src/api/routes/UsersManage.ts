@@ -96,13 +96,18 @@ router.patch('/:id/permissions', requiresAuth, async (req: Request, res: Respons
 router.post('/change-password', requiresAuth, async (req: Request, res: Response): Promise<void> => {
     const { currentPassword, newPassword } = req.body;
 
+    // @ts-ignore
+    const user = req.user;
+    if (Permissions.hasPermission(user.permissions, Permissions.CANNOT_CHANGE_PASSWORD)) {
+        res.status(403).json({ error: "You do not have permission to change your password" });
+        return;
+    }
+
     if (typeof currentPassword !== "string" || typeof newPassword !== "string" || newPassword.length < 6) {
         res.status(400).json({ error: "Current and new password (min 6 chars) are required" });
         return;
     }
 
-    // @ts-ignore
-    const user = req.user;
     const matches = await compareHashedPasswords(currentPassword, user.password);
     if (!matches) {
         res.status(400).json({ error: "Current password is incorrect" });

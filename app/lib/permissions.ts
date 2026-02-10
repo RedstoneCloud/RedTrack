@@ -2,6 +2,7 @@ export const Permissions = {
     SERVER_MANAGEMENT: 0x1,
     USER_MANAGEMENT: 0x2,
     ADD_SERVER: 0x4,
+    CANNOT_CHANGE_PASSWORD: 0x8,
 };
 
 export const hasPermission = (permissions: number, permission: number) =>
@@ -22,6 +23,7 @@ export const describePermissions = (permissions: number) => {
     if (hasPermission(values, Permissions.SERVER_MANAGEMENT)) labels.push("Manage servers");
     if (hasPermission(values, Permissions.ADD_SERVER)) labels.push("Add servers");
     if (hasPermission(values, Permissions.USER_MANAGEMENT)) labels.push("Manage users");
+    if (hasPermission(values, Permissions.CANNOT_CHANGE_PASSWORD)) labels.push("Cannot change password");
 
     return labels.length > 0 ? labels.join(", ") : "No permissions";
 };
