@@ -659,7 +659,7 @@ export default function Dashboard() {
                     </h2>
                 </CardHeader>
                 <CardBody className="min-h-[260px] p-0">
-                    <OnlinePlayersChart data={data} preserveViewport={!isLiveRange} />
+                    <OnlinePlayersChart data={data} />
                 </CardBody>
                 <CardFooter>
                     <div className="flex w-full flex-col gap-2 text-xs text-blueGray-100">
