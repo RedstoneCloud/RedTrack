@@ -676,7 +676,7 @@ export default function Dashboard() {
                         Currently connected players
                     </h2>
                 </CardHeader>
-                <CardBody className="min-h-[260px] p-0">
+                <CardBody className="h-[280px] md:h-[320px] p-0">
                     <OnlinePlayersChart data={data} />
                 </CardBody>
                 <CardFooter>
