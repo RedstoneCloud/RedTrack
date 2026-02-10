@@ -6,6 +6,71 @@ import Permissions from "../../utils/Permissions";
 
 const router = Router();
 
+
+const parseRangeBoundary = (value: unknown): number | null => {
+    if (typeof value !== "string" || value.trim() === "") return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? Math.trunc(parsed) : null;
+};
+
+router.get('/range', requiresAuth, async (req: Request, res: Response) => {
+    const from = parseRangeBoundary(req.query.from);
+    const to = parseRangeBoundary(req.query.to);
+
+    if (from === null || to === null) {
+        res.status(400).json({ error: "Both from and to query parameters are required" });
+        return;
+    }
+
+    if (from >= to) {
+        res.status(400).json({ error: "from must be lower than to" });
+        return;
+    }
+
+    const allPings = await Pings.find({
+        timestamp: {
+            $gte: from,
+            $lte: to,
+        }
+    }).sort({ timestamp: 1 });
+
+    const servers = await Server.find().then((servers) => {
+        const data = {} as any;
+        servers.forEach((server: any) => {
+            data[server._id.toString()] = {
+                color: server.color,
+                name: server.name,
+            };
+        });
+        return data;
+    });
+
+    const data = {} as any;
+
+    for (const singlePing of allPings) {
+        for (const serverId in singlePing.data) {
+            if (servers[serverId]?.name == null) continue;
+            if (!data[serverId]) {
+                data[serverId] = {
+                    pings: [],
+                    color: servers[serverId]?.color || "#000000",
+                    name: servers[serverId]?.name || serverId,
+                };
+            }
+            data[serverId].pings.push({
+                timestamp: singlePing.timestamp,
+                count: singlePing.data[serverId],
+            });
+        }
+    }
+
+    res.json({
+        from,
+        to,
+        data,
+    });
+});
+
 router.get('/all', requiresAuth, async (req: Request, res: Response) => {
     let allPings = [];
 

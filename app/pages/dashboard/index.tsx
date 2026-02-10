@@ -142,7 +142,7 @@ export default function Dashboard() {
     const canGoToNextRange = dateOverridden && toDate < now - 5000;
 
     const fetchChartRange = async (baseUrl: string, sessionToken: string, rangeFrom: number, rangeTo: number) => {
-        const response = await requestBackend(baseUrl, sessionToken, '/api/stats/all?from=' + rangeFrom + '&to=' + rangeTo, {
+        const response = await requestBackend(baseUrl, sessionToken, '/api/stats/range?from=' + rangeFrom + '&to=' + rangeTo, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
