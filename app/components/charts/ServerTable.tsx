@@ -94,6 +94,7 @@ export function ServerTable({
     const [predictionSeries, setPredictionSeries] = React.useState<PredictionPoint[]>([]);
     const [predictionError, setPredictionError] = React.useState("");
     const [isPredicting, setIsPredicting] = React.useState(false);
+    const [isDarkMode, setIsDarkMode] = React.useState(false);
 
     const rowsPerPage = 7;
 
@@ -106,6 +107,49 @@ export function ServerTable({
         }
         setVisibleColumns(new Set(baseVisibleColumns));
     }, [canManageServers, canSeePrediction]);
+
+
+    React.useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        const root = document.documentElement;
+        const detectTheme = () => {
+            setIsDarkMode(root.classList.contains("dark"));
+        };
+
+        detectTheme();
+
+        const observer = new MutationObserver(detectTheme);
+        observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+
+        return () => {
+            observer.disconnect();
+        };
+    }, []);
+
+    const chartTheme = React.useMemo(() => {
+        if (isDarkMode) {
+            return {
+                background: "rgba(17, 24, 39, 0.7)",
+                grid: "rgba(148, 163, 184, 0.2)",
+                axis: "#cbd5e1",
+                tooltipBg: "#0f172a",
+                tooltipBorder: "rgba(148, 163, 184, 0.35)",
+                tooltipText: "#e2e8f0",
+                line: "#60a5fa",
+            };
+        }
+
+        return {
+            background: "rgba(248, 250, 252, 0.9)",
+            grid: "rgba(15, 23, 42, 0.15)",
+            axis: "#334155",
+            tooltipBg: "#ffffff",
+            tooltipBorder: "rgba(15, 23, 42, 0.2)",
+            tooltipText: "#0f172a",
+            line: "#2563eb",
+        };
+    }, [isDarkMode]);
 
     const tableColumns = React.useMemo(() => {
         const columns = [...baseColumns];
@@ -520,22 +564,29 @@ export function ServerTable({
                     )}
                 </TableBody>
             </Table>
-            <Modal isOpen={!!predictionTarget} onOpenChange={() => setPredictionTarget(null)} placement="top-center">
+            <Modal isOpen={!!predictionTarget} onOpenChange={() => setPredictionTarget(null)} placement="top-center" size="4xl">
                 <ModalContent>
                     {(onClose) => (
                         <>
                             <ModalHeader className="flex flex-col gap-1">Prediction for {predictionTarget?.name}<span className="text-sm font-normal text-default-400">Next 24 hours (hourly)</span></ModalHeader>
                             <ModalBody>
-                                {isPredicting ? <p>Calculating prediction...</p> : null}
+                                {isPredicting ? <p className="text-default-500">Calculating prediction...</p> : null}
                                 {!isPredicting && predictionError ? <p className="text-red-500">{predictionError}</p> : null}
                                 {!isPredicting && !predictionError && predictionSeries.length > 0 ? (
-                                    <div className="h-72 w-full">
+                                    <div className="h-80 w-full rounded-xl border border-default-200 p-2" style={{ background: chartTheme.background }}>
                                         <ResponsiveContainer width="100%" height="100%">
                                             <LineChart data={predictionSeries} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-                                                <CartesianGrid strokeDasharray="3 3" />
-                                                <XAxis dataKey="label" interval={2} minTickGap={20} />
-                                                <YAxis allowDecimals={false} />
+                                                <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
+                                                <XAxis dataKey="label" interval={2} minTickGap={20} tick={{ fill: chartTheme.axis, fontSize: 12 }} />
+                                                <YAxis allowDecimals={false} tick={{ fill: chartTheme.axis, fontSize: 12 }} />
                                                 <RechartsTooltip
+                                                    contentStyle={{
+                                                        backgroundColor: chartTheme.tooltipBg,
+                                                        borderColor: chartTheme.tooltipBorder,
+                                                        color: chartTheme.tooltipText,
+                                                        borderRadius: 10,
+                                                    }}
+                                                    labelStyle={{ color: chartTheme.tooltipText }}
                                                     formatter={(value: number) => [value, "Predicted players"]}
                                                     labelFormatter={(_, payload: any[]) =>
                                                         payload?.[0]?.payload?.timestamp
@@ -543,14 +594,15 @@ export function ServerTable({
                                                             : ""
                                                     }
                                                 />
-                                                <Legend />
+                                                <Legend wrapperStyle={{ color: chartTheme.axis }} />
                                                 <Line
                                                     type="monotone"
                                                     dataKey="predictedPlayers"
                                                     name="Predicted players"
-                                                    stroke="#8884d8"
-                                                    strokeWidth={2}
+                                                    stroke={chartTheme.line}
+                                                    strokeWidth={3}
                                                     dot={false}
+                                                    activeDot={{ r: 5 }}
                                                 />
                                             </LineChart>
                                         </ResponsiveContainer>
@@ -558,7 +610,7 @@ export function ServerTable({
                                 ) : null}
                             </ModalBody>
                             <ModalFooter>
-                                <Button variant="flat" onPress={onClose}>Close</Button>
+                                <Button color="primary" variant="flat" onPress={onClose}>Close</Button>
                             </ModalFooter>
                         </>
                     )}
