@@ -527,7 +527,7 @@ export default function Dashboard() {
 
     return (
         <>
-            <div className="flex flex-col min-h-screen p-3 pt-[max(env(safe-area-inset-top),1rem)] sm:p-4 space-y-4 pb-[max(env(safe-area-inset-bottom),1rem)]">
+            <div className="flex flex-col min-h-screen p-3 pt-[max(env(safe-area-inset-top),1.75rem)] sm:p-4 space-y-4 pb-[max(env(safe-area-inset-bottom),1rem)]">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex flex-col">
                     <span className="text-sm text-default-400">Signed in as</span>

@@ -4,10 +4,17 @@ import React, { useEffect, useState } from "react";
 import { PlusIcon } from "@/components/icons";
 import { Preferences } from '@capacitor/preferences';
 import { useRouter } from "next/router";
-import { TrashIcon } from "lucide-react";
+import { PencilIcon, TrashIcon } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 
 export default function Home() {
+  type ServerEntry = {
+    name?: string;
+    username: string;
+    url: string;
+    token: string;
+  };
+
   async function deleteServer(index: any) {
     let servers = JSON.parse((await Preferences.get({ key: "servers" })).value || "[]");
     servers.splice(index, 1);
@@ -47,49 +54,88 @@ export default function Home() {
       const username = (data.get("username") as string).trim();
       const customName = (data.get("serverName") as string | null)?.trim() || "";
       const resolvedName = customName || `${username}@${getBackendHost(url)}`;
-      const response = await fetch(url + "/api/auth/startSession", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: username,
-          password: data.get("password")
-        }),
-      });
+      const password = (data.get("password") as string).trim();
+      let nextToken = "";
 
-      setSubmitting(false)
-
-      if (!response.ok) {
-        setLoginError(response.statusText + " - " + response.status);
-        return;
-      }
-
-      const json = await response.json();
-      if (json.success) {
-        let servers = JSON.parse((await Preferences.get({ key: "servers" })).value || "[]");
-        servers.push({
-          name: resolvedName,
-          username,
-          url,
-          token: json.sessionId
-        });
-        await Preferences.set({ key: "servers", value: JSON.stringify(servers) });
-        setServers(servers);
-        setPage(0);
+      if (editingIndex !== null && !password) {
+        const existingServer = servers[editingIndex];
+        if (!existingServer) {
+          setSubmitting(false)
+          setLoginError("Could not load the selected server entry.");
+          return;
+        }
+        nextToken = existingServer.token;
       } else {
-        setLoginError(json.message);
+        const response = await fetch(url + "/api/auth/startSession", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: username,
+            password
+          }),
+        });
+
+        if (!response.ok) {
+          setSubmitting(false)
+          setLoginError(response.statusText + " - " + response.status);
+          return;
+        }
+
+        const json = await response.json();
+        if (!json.success) {
+          setSubmitting(false)
+          setLoginError(json.message);
+          return;
+        }
+
+        nextToken = json.sessionId;
       }
+
+      let storedServers = JSON.parse((await Preferences.get({ key: "servers" })).value || "[]");
+      const nextServer = {
+        name: resolvedName,
+        username,
+        url,
+        token: nextToken
+      };
+
+      if (editingIndex === null) {
+        storedServers.push(nextServer);
+      } else {
+        storedServers[editingIndex] = nextServer;
+      }
+
+      await Preferences.set({ key: "servers", value: JSON.stringify(storedServers) });
+      setServers(storedServers);
+      setEditingIndex(null);
+      setFormValues({
+        url: "",
+        username: "",
+        password: "",
+        serverName: "",
+      });
+      setPage(0);
+      setSubmitting(false)
     } catch (error: any) {
       setSubmitting(false)
       setLoginError(error.message);
     }
   }
 
+
   let [page, setPage] = useState(0);
-  let [servers, setServers] = useState([]);
+  let [servers, setServers] = useState<ServerEntry[]>([]);
   let [loginError, setLoginError] = useState("");
   let [submitting, setSubmitting] = useState(false);
+  let [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [formValues, setFormValues] = useState({
+    url: "",
+    username: "",
+    password: "",
+    serverName: "",
+  });
 
   let router = useRouter();
 
@@ -98,6 +144,30 @@ export default function Home() {
       setServers(data.value ? JSON.parse(data.value) : []);
     })
   }, []);
+
+  const openCreateForm = () => {
+    setEditingIndex(null);
+    setFormValues({
+      url: "",
+      username: "",
+      password: "",
+      serverName: "",
+    });
+    setLoginError("");
+    setPage(1);
+  };
+
+  const openEditForm = (server: ServerEntry, index: number) => {
+    setEditingIndex(index);
+    setFormValues({
+      url: server.url,
+      username: server.username,
+      password: "",
+      serverName: server.name || "",
+    });
+    setLoginError("");
+    setPage(1);
+  };
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 px-3 pb-4 pt-[max(env(safe-area-inset-top),1rem)] dark:bg-slate-950">
@@ -128,6 +198,11 @@ export default function Home() {
                           <span className='text-xs text-default-500'>{server.url}</span>
                         </div>
                       </Button>
+                      <Button key={"edit" + index} variant="flat" className="min-w-10" onPress={() => {
+                        openEditForm(server, index);
+                      }}>
+                        <PencilIcon width={20} />
+                      </Button>
                       <Button key={"del" + index} variant="flat" color="danger" className="min-w-10" onPress={() => {
                         deleteServer(index);
                       }}>
@@ -139,7 +214,7 @@ export default function Home() {
               </div>
             </CardBody>
             <CardFooter>
-              <Button color="default" className="w-full" startContent={<PlusIcon />} variant="faded" onPress={() => setPage(1)}>
+              <Button color="default" className="w-full" startContent={<PlusIcon />} variant="faded" onPress={openCreateForm}>
                 Add new server
               </Button>
             </CardFooter>
@@ -152,7 +227,7 @@ export default function Home() {
             <Card className={"page-card"}>
             <CardHeader className="flex flex-col items-center gap-3">
               <Image src="/logo.png" alt="logo" width={112} height={112} className="rounded-lg" />
-              <h1 className="font-bold text-large">RedTrack</h1>
+              <h1 className="font-bold text-large">{editingIndex === null ? "Add server" : "Edit server"}</h1>
             </CardHeader>
             <CardBody>
               <Form
@@ -167,6 +242,8 @@ export default function Home() {
                 <Input
                   type="url"
                   name="url"
+                  value={formValues.url}
+                  onValueChange={(value) => setFormValues((prev) => ({ ...prev, url: value }))}
                   label={"Backend IP Address"}
                   placeholder="http://localhost:3000"
                   errorMessage="Please enter a valid backend address"
@@ -177,6 +254,8 @@ export default function Home() {
                 <Input
                   type="text"
                   name="serverName"
+                  value={formValues.serverName}
+                  onValueChange={(value) => setFormValues((prev) => ({ ...prev, serverName: value }))}
                   label={"Server entry name (optional)"}
                   placeholder="My Production"
                   labelPlacement="outside"
@@ -187,6 +266,8 @@ export default function Home() {
                   <Input
                     type="text"
                     name="username"
+                    value={formValues.username}
+                    onValueChange={(value) => setFormValues((prev) => ({ ...prev, username: value }))}
                     label={"Username"}
                     placeholder="admin"
                     errorMessage="Please enter a username"
@@ -197,6 +278,8 @@ export default function Home() {
                   <Input
                     type="password"
                     name="password"
+                    value={formValues.password}
+                    onValueChange={(value) => setFormValues((prev) => ({ ...prev, password: value }))}
                     label={"Password"}
                     placeholder="changeme"
                     errorMessage="Please enter a password"
@@ -208,10 +291,13 @@ export default function Home() {
             </CardBody>
             <CardFooter className='flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-between'>
               <Button className='w-full sm:w-auto' type="submit" onClick={() => (document.getElementById("addform") as HTMLFormElement).requestSubmit()} variant="flat" color="success" disabled={submitting}>
-                {submitting ? "Loading..." : "Submit"}
+                {submitting ? "Loading..." : editingIndex === null ? "Submit" : "Save changes"}
               </Button>
 
-              <Button className='w-full sm:w-auto' onPress={() => setPage(0)} variant="bordered" disabled={submitting}>
+              <Button className='w-full sm:w-auto' onPress={() => {
+                setPage(0);
+                setEditingIndex(null);
+              }} variant="bordered" disabled={submitting}>
                 Back to list
               </Button>
             </CardFooter>

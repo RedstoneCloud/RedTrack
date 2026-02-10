@@ -2,11 +2,16 @@ import Chart from "chart.js/auto";
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import React, { useEffect, useRef } from "react";
 
-Chart.register(require("chartjs-plugin-zoom").default);
-
 export function OnlinePlayersChart({ data, preserveViewport = false }: { data: any; preserveViewport?: boolean }) {
     const chartRef = useRef<Chart | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const pluginRegisteredRef = useRef(false);
+
+    useEffect(() => {
+        if (pluginRegisteredRef.current || typeof window === "undefined") return;
+        Chart.register(require("chartjs-plugin-zoom").default);
+        pluginRegisteredRef.current = true;
+    }, []);
 
     useEffect(() => {
         if (!data || !data.data) return;
