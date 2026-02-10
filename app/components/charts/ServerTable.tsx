@@ -97,7 +97,7 @@ export function ServerTable({
     const [isPredicting, setIsPredicting] = React.useState(false);
     const [isDarkMode, setIsDarkMode] = React.useState(true);
 
-    const rowsPerPage = 7;
+    const rowsPerPage = 6;
 
     const hasSearchFilter = Boolean(filterValue);
 

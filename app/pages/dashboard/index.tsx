@@ -715,7 +715,7 @@ export default function Dashboard() {
                             <label className="flex items-center gap-2">
                                 <span className="text-blueGray-100">Live window</span>
                                 <select
-                                    className="rounded-medium border border-default-300 bg-default-100 px-2 py-1 text-xs text-foreground"
+                                    className="rounded-small border border-default-300 bg-default-100 px-2 py-1 text-xs text-foreground"
                                     value={liveRangeHours}
                                     onChange={(event) => handleLiveRangeChange(Number(event.target.value) as typeof liveRangeOptions[number])}
                                 >
