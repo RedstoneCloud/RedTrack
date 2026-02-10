@@ -1,14 +1,29 @@
 # RedTrack
 
-RedTrack is a monitoring dashboard for game server player counts, with a Next.js frontend (`app/`) and backend service (`backend/`).
+RedTrack is an alternative to **Minetrack** focused on self-hosting and control.
+
+It supports:
+- **Multiple backends** from one client app
+- An **Android app** (Capacitor-based frontend)
+- Built-in **user management**
+- On-site/backend-integrated **server management** from the dashboard UI
+
+## Project structure
+
+- `app/` — Next.js frontend (web + Android wrapper via Capacitor)
+- `backend/` — Node.js + Express + MongoDB API service
+- `types/` — shared types
+- `docs/` — user and developer documentation
 
 ## Documentation
 
-- **User documentation:** [`docs/users.md`](docs/users.md)
-- **Developer documentation:** [`docs/developers.md`](docs/developers.md)
+- User guide: [`docs/users.md`](docs/users.md)
+- Developer guide: [`docs/developers.md`](docs/developers.md)
 
-## Repository layout
+## Core capabilities
 
-- `app/` - Next.js frontend (also used for static export / GitHub Pages)
-- `backend/` - backend API
-- `types/` - shared types
+- Track online players and trends
+- Manage multiple tracked Minecraft servers
+- Manage users and permissions from the UI
+- Detect backend disconnects and recover automatically when reachable again
+- Deploy frontend as static export (GitHub Pages workflow included)
