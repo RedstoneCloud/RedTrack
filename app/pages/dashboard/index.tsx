@@ -20,7 +20,7 @@ import {
     TableHeader,
     TableRow,
 } from "@heroui/react";
-import { OnlinePlayersChart } from "@/components/charts/OnlinePlayersChart";
+import { OnlinePlayersChart, OnlinePlayersChartHandle } from "@/components/charts/OnlinePlayersChart";
 import { ServerTable } from "@/components/charts/ServerTable";
 import { Preferences } from "@capacitor/preferences";
 import { Permissions, describePermissions, hasPermission, normalizePermissions } from "@/lib/permissions";
@@ -48,6 +48,7 @@ export default function Dashboard() {
     } as any);
 
     let [tableData, setTableData] = useState<TableRow[]>([]);
+    const [hiddenServers, setHiddenServers] = useState<Set<string>>(new Set());
     let [backendReachable, setBackendReachable] = useState(true);
     let [backendError, setBackendError] = useState("");
     let [fromDate, setFromDate] = useState(new Date().getTime() - 60 * 1000 * 60 * 6)
@@ -119,6 +120,7 @@ export default function Dashboard() {
         };
     };
 
+    const chartRef = useRef<OnlinePlayersChartHandle>(null);
     const fromDateRef = useRef(fromDate);
     const toDateRef = useRef(toDate);
     const dateOverriddenRef = useRef(dateOverridden);
@@ -153,6 +155,22 @@ export default function Dashboard() {
     const canManageUsers = currentUser ? hasPermission(currentUser.permissions, Permissions.USER_MANAGEMENT) : false;
     const canChangeOwnPassword = currentUser ? !hasPermission(currentUser.permissions, Permissions.CANNOT_CHANGE_PASSWORD) : false;
     const canSeePrediction = currentUser ? hasPermission(currentUser.permissions, Permissions.CAN_SEE_PREDICTION) : false;
+
+    const handleToggleServer = (serverName: string) => {
+        setHiddenServers(prev => {
+            const next = new Set(prev);
+            if (next.has(serverName)) {
+                next.delete(serverName);
+            } else {
+                next.add(serverName);
+            }
+            return next;
+        });
+    };
+
+    const sortedTableData = React.useMemo(() => {
+        return [...tableData].sort((a, b) => b.playerCount - a.playerCount);
+    }, [tableData]);
 
     const formatRange = (value: number) => new Date(value).toLocaleString();
     const now = Date.now();
@@ -218,6 +236,7 @@ export default function Dashboard() {
         setToDate(liveTo);
         fromDateRef.current = liveFrom;
         toDateRef.current = liveTo;
+        chartRef.current?.resetZoom();
         await fetchChartRange(url, token, liveFrom, liveTo);
     };
 
@@ -692,7 +711,7 @@ export default function Dashboard() {
                     </h2>
                 </CardHeader>
                 <CardBody className="h-[280px] md:h-[320px] p-0 overflow-hidden">
-                    <OnlinePlayersChart data={data} />
+                    <OnlinePlayersChart ref={chartRef} data={data} hiddenServers={hiddenServers} />
                 </CardBody>
                 <CardFooter>
                     <div className="flex w-full flex-col gap-2 text-xs text-blueGray-100">
@@ -781,7 +800,7 @@ export default function Dashboard() {
                         <ServerTable
                             url={url}
                             token={token}
-                            data={tableData}
+                            data={sortedTableData}
                             canAddServer={canAddServer}
                             canManageServers={canManageServers}
                             canSeePrediction={canSeePrediction}
@@ -792,6 +811,8 @@ export default function Dashboard() {
                                 }
                                 reloadData();
                             }}
+                            hiddenServers={hiddenServers}
+                            onToggleServer={handleToggleServer}
                         />
                     </CardBody>
                 </Card>
