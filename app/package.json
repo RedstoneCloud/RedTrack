@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
+    "build:pages": "BUILD_TARGET=pages next build",
     "start": "next start",
     "lint": "next lint",
     "sync:android": "pnpm exec capacitor-assets generate && pnpm exec cap sync android",

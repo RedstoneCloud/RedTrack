@@ -43,7 +43,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build static export
-        run: pnpm build
+        run: pnpm build:pages
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
