@@ -45,7 +45,6 @@ router.post('/create', requiresAuth, async (req: Request, res: Response): Promis
 
         if (!trimmedServerName || !trimmedServerIP || !serverPort || Number.isNaN(parsedPort)) {
             res.status(400).json({ error: "All fields are required" });
-            console.log("All fields are required");
             return;
         }
 
@@ -77,7 +76,6 @@ router.post('/create', requiresAuth, async (req: Request, res: Response): Promis
             ...(parsedColor ? { color: parsedColor } : {}),
         }).save();
 
-        console.log("Server created successfully");
 
         res.status(201).json({ message: "Server created successfully" });
         return;

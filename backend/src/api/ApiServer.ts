@@ -1,6 +1,8 @@
 import express from 'express';
 import { Request, Response } from 'express';
 import fs from 'fs';
+import http from 'http';
+import https from 'https';
 import cors from 'cors';
 import Sessions from "../models/Sessions";
 import Users from "../models/Users";
@@ -9,28 +11,47 @@ const app = express();
 const port = Number(process.env.backend_port) || 3001;
 
 app.use(cors({
-  origin: "*",  // Allows all origins
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], // Allowed methods
-  allowedHeaders: ["Content-Type", "Authorization"] // Allowed headers
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 app.options("*", cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-//all routers from ./routes/*.ts (or js, if you compile them), use fs, allow nested folders
 fs.readdirSync(__dirname + '/routes').forEach((file) => {
   if (file.endsWith('.ts') || file.endsWith('.js')) {
     const route = require(`./routes/${file}`);
     app.use("/api/" + file.split(".")[0].toLowerCase(), route.default);
-
-    console.log(`Route ${file} loaded`);
   }
 });
 
+const httpsEnabled = process.env.backend_https_enabled === "true";
+const httpsKeyPath = process.env.backend_https_key_path;
+const httpsCertPath = process.env.backend_https_cert_path;
 
-app.listen(port, () => {
-  console.log(`Server started at http://localhost:${port}`);
+if (httpsEnabled && (!httpsKeyPath || !httpsCertPath)) {
+  throw new Error("HTTPS is enabled, but backend_https_key_path/backend_https_cert_path are not configured");
+}
+
+if (httpsEnabled && (!fs.existsSync(httpsKeyPath as string) || !fs.existsSync(httpsCertPath as string))) {
+  throw new Error("HTTPS is enabled, but certificate files do not exist");
+}
+
+const server = httpsEnabled
+  ? https.createServer(
+      {
+        key: fs.readFileSync(httpsKeyPath as string),
+        cert: fs.readFileSync(httpsCertPath as string),
+      },
+      app
+    )
+  : http.createServer(app);
+
+server.listen(port, () => {
+  const protocol = httpsEnabled ? "https" : "http";
+  console.log(`Server started at ${protocol}://localhost:${port}`);
 });
 
 async function requiresAuth(req: Request, res: Response, next: Function) {

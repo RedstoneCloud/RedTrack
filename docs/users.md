@@ -6,6 +6,10 @@
 2. Add your backend URL, username, and password.
 3. Select your server entry from the list.
 
+Hosted web app: **https://redstonecloud.github.io/RedTrack**
+
+> If you use the hosted web app, your backend URL must use **HTTPS** (not HTTP). Browsers block mixed-content requests from an HTTPS page to an HTTP API.
+
 ## Main page
 
 - **Add new server**: create a new saved backend profile.
@@ -61,7 +65,15 @@ In `backend/.env`:
 mongodb_uri=mongodb://127.0.0.1:27017
 ping_rate=10000
 backend_port=3001
+backend_https_enabled=false
+backend_https_key_path=/path/to/privkey.pem
+backend_https_cert_path=/path/to/fullchain.pem
 ```
+
+Optional HTTPS settings:
+
+- `backend_https_enabled=true` switches the backend to HTTPS mode.
+- `backend_https_key_path` and `backend_https_cert_path` must point to readable PEM files that always exist when HTTPS is enabled.
 
 ### 5) Start the backend
 
@@ -122,6 +134,9 @@ Create `backend\.env` with:
 mongodb_uri=mongodb://127.0.0.1:27017
 ping_rate=10000
 backend_port=3001
+backend_https_enabled=false
+backend_https_key_path=/path/to/privkey.pem
+backend_https_cert_path=/path/to/fullchain.pem
 ```
 
 ### 5) Start backend
@@ -143,7 +158,7 @@ npm start
 
 Use backend URL:
 
-- `http://localhost:3001` (same machine)
-- `http://<your-server-ip>:3001` (LAN/remote client)
+- `https://localhost:3001` (same machine, with trusted/local cert setup)
+- `https://<your-server-ip>:3001` (LAN/remote client, with valid cert)
 
 Then log in with default credentials (`admin` / `changeme`) and change the password.

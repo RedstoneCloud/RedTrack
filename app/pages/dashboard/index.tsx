@@ -591,14 +591,11 @@ export default function Dashboard() {
         const intervalId = setInterval(async () => {
             try {
                 await reloadData();
-            } catch (e) {
-                console.log(e)
+            } catch {
             }
         }, pingRate);
 
-        console.log("pirst ping")
-        reloadData().catch((error) => {
-            console.log(error);
+        reloadData().catch(() => {
         });
 
         return () => clearInterval(intervalId);
@@ -620,21 +617,18 @@ export default function Dashboard() {
 
     useEffect(() => {
         if (!token || !url) return;
-        loadCurrentUser(url, token).catch((error) => {
-            console.log(error);
+        loadCurrentUser(url, token).catch(() => {
         });
     }, [token, url]);
 
     useEffect(() => {
         if (!token || !url || !currentUser) return;
         if (hasPermission(currentUser.permissions, Permissions.SERVER_MANAGEMENT)) {
-            loadServerDetails(url, token).catch((error) => {
-                console.log(error);
+            loadServerDetails(url, token).catch(() => {
             });
         }
         if (hasPermission(currentUser.permissions, Permissions.USER_MANAGEMENT)) {
-            loadUsers(url, token).catch((error) => {
-                console.log(error);
+            loadUsers(url, token).catch(() => {
             });
         }
     }, [currentUser, token, url]);

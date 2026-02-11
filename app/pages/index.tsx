@@ -136,6 +136,7 @@ export default function Home() {
   });
 
   let router = useRouter();
+  const publicAssetPrefix = router.basePath || "";
 
   useEffect(() => {
     Preferences.get({ key: "servers" }).then(data => {
@@ -173,7 +174,7 @@ export default function Home() {
         page === 0 ? (
           <Card className={"page-card"}>
             <CardHeader className="flex flex-col items-center gap-3">
-              <Image src="/logo.png" alt="logo" width={128} height={128} className="rounded-lg" />
+              <Image src={`${publicAssetPrefix}/logo.png`} alt="logo" width={128} height={128} className="rounded-lg" />
               <h1 className="font-bold text-large">RedTrack</h1>
             </CardHeader>
             <CardBody className="px-3 py-0 text-medium text-default-400">
@@ -237,7 +238,7 @@ export default function Home() {
         page === 1 ? (
             <Card className={"page-card"}>
               <CardHeader className="flex flex-col items-center gap-3">
-                <Image src="/logo.png" alt="logo" width={112} height={112} className="rounded-lg"/>
+                <Image src={`${publicAssetPrefix}/logo.png`} alt="logo" width={112} height={112} className="rounded-lg"/>
                 <h1 className="font-bold text-large">{editingIndex === null ? "Add server" : "Edit server"}</h1>
               </CardHeader>
               <CardBody>
