@@ -7,8 +7,6 @@ import { requiresAuth } from "../ApiServer";
 const router = Router();
 
 router.post('/startSession', async (req: Request, res: Response) => {
-    //log body
-    console.log(req.body);
     let user = await Users.findOne({
         name: req.body.name,
     })
