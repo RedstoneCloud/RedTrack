@@ -150,7 +150,7 @@ export function OnlinePlayersChart({ data, preserveViewport = false }: { data: a
                     x: {
                         type: 'time',
                         time: {
-                            tooltipFormat: 'll hh:mm:ss',
+                            tooltipFormat: 'll HH:mm:ss',
                             displayFormats: {
                                 minute: 'll',
                                 hour: 'll HH:mm',
