@@ -39,6 +39,7 @@ import { ChevronDownIcon, SearchIcon, InfoIcon, ArrowIcon } from "../icons";
 
 const baseColumns = [
     { name: "Internal ID", uid: "internalId", sortable: true },
+    { name: "Chart", uid: "chart", sortable: false },
     { name: "Server", uid: "server", sortable: true },
     { name: "Player Count", uid: "playerCount", sortable: true },
     { name: "Daily Peak", uid: "dailyPeak", sortable: true },
@@ -49,7 +50,7 @@ export function capitalize(s: String) {
     return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
 }
 
-const INITIAL_VISIBLE_COLUMNS = ["server", "playerCount", "dailyPeak", "record"];
+const INITIAL_VISIBLE_COLUMNS = ["chart", "server", "playerCount", "dailyPeak", "record"];
 
 type PredictionPoint = {
     timestamp: number;
@@ -66,6 +67,8 @@ export function ServerTable({
     canSeePrediction,
     serverDetails,
     onServersChanged,
+    hiddenServers,
+    onToggleServer,
 }: {
     url: string | null,
     token: string,
@@ -75,6 +78,8 @@ export function ServerTable({
     canSeePrediction: boolean;
     serverDetails: Record<string, { name: string; ip: string; port: number; color: string; bedrock: boolean }>;
     onServersChanged: () => void;
+    hiddenServers?: Set<string>;
+    onToggleServer?: (serverName: string) => void;
 }) {
     const [filterValue, setFilterValue] = React.useState("");
     const [visibleColumns, setVisibleColumns] = React.useState(new Set(INITIAL_VISIBLE_COLUMNS));
@@ -199,10 +204,18 @@ export function ServerTable({
         const start = (page - 1) * rowsPerPage;
         const end = start + rowsPerPage;
 
-        return sortedItems.slice(start, end);
-    }, [page, sortedItems, rowsPerPage]);
+        return sortedItems.slice(start, end).map(item => ({
+            ...item,
+            _chartVisible: !hiddenServers?.has(item.server),
+        }));
+    }, [page, sortedItems, rowsPerPage, hiddenServers]);
 
-    const renderCell = React.useCallback((server: any, columnKey: any) => {
+    const getServerColor = (internalId: string): string => {
+        const details = serverDetails[internalId];
+        return details?.color || "#3b82f6";
+    };
+
+    const renderCell = (server: any, columnKey: any) => {
         const cellValue = (
             <span className={`font-bold ${columnKey != "playerCount" || server.playerCountDevelopment === "stagnant" ? "text-default-700" : ""}`}>
                 {server[columnKey]}
@@ -210,6 +223,32 @@ export function ServerTable({
         );
 
         switch (columnKey) {
+            case "chart":
+                const serverColor = getServerColor(server.internalId);
+                const isVisible = server._chartVisible !== false;
+                return (
+                    <div
+                        className="flex items-center justify-center cursor-pointer p-1"
+                        role="button"
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            onToggleServer?.(server.server);
+                        }}
+                        title={isVisible ? "Hide from chart" : "Show on chart"}
+                    >
+                        <div
+                            className="w-3 h-3 rounded-full"
+                            style={{
+                                backgroundColor: isVisible ? serverColor : "transparent",
+                                boxShadow: isVisible ? `0 0 6px ${serverColor}` : "none",
+                                border: `2.5px solid ${serverColor}`,
+                                opacity: isVisible ? 1 : 0.3,
+                            }}
+                        />
+                    </div>
+                );
             case "server":
                 return (
                     <div className="flex gap-4 items-center w-32">
@@ -281,7 +320,7 @@ export function ServerTable({
             default:
                 return cellValue;
         }
-    }, [canManageServers, canSeePrediction, serverDetails]);
+    };
 
     const handleEdit = (serverId: string) => {
         const details = serverDetails[serverId];
@@ -583,6 +622,7 @@ export function ServerTable({
                         <TableColumn
                             key={column.uid}
                             allowsSorting={column.sortable}
+                            {...(column.uid === "chart" ? { className: "w-14" } : {})}
                         >
                             {column.name}
                         </TableColumn>
@@ -590,7 +630,7 @@ export function ServerTable({
                 </TableHeader>
                 <TableBody emptyContent={"No data found"} items={items}>
                     {(item) => (
-                        <TableRow key={item.internalId}>
+                        <TableRow key={`${item.internalId}-${item._chartVisible}`}>
                             {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
                         </TableRow>
                     )}
