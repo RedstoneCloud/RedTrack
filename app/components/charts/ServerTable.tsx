@@ -22,16 +22,7 @@ import {
     ModalFooter,
     Checkbox,
 } from "@heroui/react";
-import {
-    ResponsiveContainer,
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Legend,
-    Tooltip as RechartsTooltip,
-} from "recharts";
+import { PredictionChart } from "./PredictionChart";
 
 import { AddServer } from "../server/AddServer";
 
@@ -163,6 +154,7 @@ export function ServerTable({
             line: "#2563eb",
         };
     }, [isDarkMode]);
+    const predictionLineColor = "#9f74ca";
 
     const tableColumns = React.useMemo(() => {
         const columns = [...baseColumns];
@@ -521,9 +513,29 @@ export function ServerTable({
             });
         }
 
-        setPredictionSeries(predictions);
+        const detailedPredictions: PredictionPoint[] = [];
+        const stepMs = 15 * 60 * 1000;
+        for (let i = 0; i < predictions.length; i++) {
+            const current = predictions[i];
+            const next = predictions[i + 1];
+            detailedPredictions.push(current);
+            if (!next) continue;
+            const delta = next.predictedPlayers - current.predictedPlayers;
+            for (let step = 1; step <= 3; step++) {
+                const timestamp = current.timestamp + step * stepMs;
+                const interpolated = current.predictedPlayers + (delta * step) / 4;
+                detailedPredictions.push({
+                    timestamp,
+                    label: new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                    predictedPlayers: Math.max(0, Math.round(interpolated)),
+                });
+            }
+        }
+
+        setPredictionSeries(detailedPredictions);
         setIsPredicting(false);
     };
+
 
     const handleDelete = async (serverId: string) => {
         if (!url) return;
@@ -743,7 +755,7 @@ export function ServerTable({
                 <ModalContent>
                     {(onClose) => (
                         <>
-                            <ModalHeader className="flex flex-col gap-1">Prediction for {predictionTarget?.name}<span className="text-sm font-normal text-default-400">Next 24 full hours (hourly)</span></ModalHeader>
+                            <ModalHeader className="flex flex-col gap-1">Prediction for {predictionTarget?.name}<span className="text-sm font-normal text-default-400">Next 24 hours (15-min steps)</span></ModalHeader>
                             <ModalBody>
                                 {isPredicting ? <p className="text-default-500">Calculating prediction...</p> : null}
                                 {!isPredicting && predictionError ? <p className="text-red-500">{predictionError}</p> : null}
@@ -751,39 +763,15 @@ export function ServerTable({
                                     <p className="text-xs text-default-400">Experimental feature: this chart is only an estimate and may differ from actual player counts.</p>
                                 ) : null}
                                 {!isPredicting && !predictionError && predictionSeries.length > 0 ? (
-                                    <div className="h-80 w-full rounded-xl border border-default-200 p-2" style={{ background: chartTheme.background }}>
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <LineChart data={predictionSeries} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
-                                                <XAxis dataKey="label" interval={2} minTickGap={20} tick={{ fill: chartTheme.axis, fontSize: 12 }} />
-                                                <YAxis allowDecimals={false} tick={{ fill: chartTheme.axis, fontSize: 12 }} />
-                                                <RechartsTooltip
-                                                    contentStyle={{
-                                                        backgroundColor: chartTheme.tooltipBg,
-                                                        borderColor: chartTheme.tooltipBorder,
-                                                        color: chartTheme.tooltipText,
-                                                        borderRadius: 10,
-                                                    }}
-                                                    labelStyle={{ color: chartTheme.tooltipText }}
-                                                    formatter={(value: number | string) => [String(value), "Predicted players"]}
-                                                    labelFormatter={(_, payload: any[]) =>
-                                                        payload?.[0]?.payload?.timestamp
-                                                            ? new Date(payload[0].payload.timestamp).toLocaleString()
-                                                            : ""
-                                                    }
-                                                />
-                                                <Legend wrapperStyle={{ color: chartTheme.axis }} />
-                                                <Line
-                                                    type="monotone"
-                                                    dataKey="predictedPlayers"
-                                                    name="Predicted players"
-                                                    stroke={chartTheme.line}
-                                                    strokeWidth={3}
-                                                    dot={false}
-                                                    activeDot={{ r: 5 }}
-                                                />
-                                            </LineChart>
-                                        </ResponsiveContainer>
+                                    <div
+                                        className="h-80 w-full rounded-xl border border-default-200 p-2"
+                                        style={{ background: chartTheme.background }}
+                                    >
+                                        <PredictionChart
+                                            points={predictionSeries}
+                                            lineColor={predictionLineColor}
+                                            theme={chartTheme}
+                                        />
                                     </div>
                                 ) : null}
                             </ModalBody>
