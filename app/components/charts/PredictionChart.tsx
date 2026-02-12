@@ -49,7 +49,7 @@ export function PredictionChart({
 
         const stepSize = 1;
         const maxYValue = Math.max(...dataPoints.map((point) => point.y), 0);
-        const yMax = Math.max(1, maxYValue * 1.2);
+        const yMax = Math.max(1, Math.ceil(maxYValue * 1.2));
 
         if (chartRef.current) {
             const chart = chartRef.current;
@@ -76,6 +76,7 @@ export function PredictionChart({
                     yScale.min = 0;
                     yScale.max = yMax;
                     yScale.ticks.stepSize = stepSize;
+                    yScale.ticks.callback = (value: any) => Math.ceil(Number(value));
                 }
 
             chart.update("none");
@@ -152,7 +153,10 @@ export function PredictionChart({
                             color: theme.axis,
                             beginAtZero: true,
                             stepSize,
-                            callback: (value: any) => (value < 0 ? 0 : value),
+                            callback: (value: any) => {
+                                const rounded = Math.ceil(Number(value));
+                                return rounded < 0 ? 0 : rounded;
+                            },
                         },
                         grid: {
                             borderDash: [3],
