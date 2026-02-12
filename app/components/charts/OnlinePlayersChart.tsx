@@ -40,22 +40,41 @@ export const OnlinePlayersChart = forwardRef<OnlinePlayersChartHandle, { data: a
             if (!data || !data.data) return;
 
             const datasets: any[] = [];
+            const toQuarterMinuteAverages = (pings: any[]) => {
+                const buckets = new Map<number, { sum: number; count: number }>();
+                for (const point of pings) {
+                    const timestamp = Number(point.timestamp);
+                    const count = Number(point.count);
+                    if (!Number.isFinite(timestamp) || !Number.isFinite(count)) continue;
+                    const bucketKey = Math.floor(timestamp / 15000);
+                    const bucket = buckets.get(bucketKey);
+                    if (bucket) {
+                        bucket.sum += count;
+                        bucket.count += 1;
+                    } else {
+                        buckets.set(bucketKey, { sum: count, count: 1 });
+                    }
+                }
+                return Array.from(buckets.entries())
+                    .sort((a, b) => a[0] - b[0])
+                    .map(([bucketKey, bucket]) => ({
+                        x: bucketKey * 15000,
+                        y: Math.round(bucket.sum / bucket.count),
+                    }));
+            };
             for (const server in data.data) {
                 const serverData = data.data[server];
                 const label = serverData.name || server;
 
                 datasets.push({
                     label,
-                    data: serverData.pings.map((point: any) => ({
-                        x: point.timestamp,
-                        y: point.count
-                    })),
+                    data: toQuarterMinuteAverages(serverData.pings || []),
                     fill: false,
                     pointRadius: 0,
                     pointHoverRadius: 0,
                     backgroundColor: serverData.color,
                     borderColor: serverData.color,
-                    borderWidth: 2,
+                    borderWidth: 3,
                     tension: 0.3,
                     hidden: hiddenServers ? hiddenServers.has(label) : false,
                 });
@@ -118,6 +137,38 @@ export const OnlinePlayersChart = forwardRef<OnlinePlayersChartHandle, { data: a
                             titleColor: "white",
                             bodyColor: "white",
                             footerColor: "white",
+                            titleFont: { weight: "700" },
+                            bodyFont: { weight: "400" },
+                            callbacks: {
+                                title: (items: any[]) => {
+                                    const first = items?.[0];
+                                    if (!first) return "";
+                                    const timestamp = first.parsed?.x;
+                                    if (!timestamp) return "";
+                                    const date = new Date(timestamp);
+                                    return date.toLocaleString();
+                                },
+                                label: (item: any) => `${item.dataset?.label || "Server"}: ${item.parsed?.y ?? 0}`,
+                                labelTextColor: (item: any) => {
+                                    const chartTooltip = item?.chart?.tooltip;
+                                    const caretY = chartTooltip?.caretY ?? null;
+                                    if (caretY == null) return "rgba(255,255,255,0.75)";
+                                    let nearest = item;
+                                    let nearestDist = Number.POSITIVE_INFINITY;
+                                    for (const candidate of chartTooltip?.dataPoints || []) {
+                                        const y = candidate?.element?.y;
+                                        if (!Number.isFinite(y)) continue;
+                                        const dist = Math.abs(y - caretY);
+                                        if (dist < nearestDist) {
+                                            nearest = candidate;
+                                            nearestDist = dist;
+                                        }
+                                    }
+                                    return item.dataset?.label === nearest?.dataset?.label
+                                        ? "#ffffff"
+                                        : "rgba(255,255,255,0.75)";
+                                },
+                            },
                             itemSort: (a: any, b: any) => b.parsed.y - a.parsed.y,
                         },
                         zoom: {
@@ -142,7 +193,7 @@ export const OnlinePlayersChart = forwardRef<OnlinePlayersChartHandle, { data: a
                     },
                     hover: {
                         mode: "nearest",
-                        intersect: true,
+                        intersect: false,
                     },
                     scales: {
                         y: {

@@ -128,6 +128,7 @@ export default function Dashboard() {
     const [customFromInput, setCustomFromInput] = useState(formatDateTimeLocal(fromDate));
     const [customToInput, setCustomToInput] = useState(formatDateTimeLocal(toDate));
     const [rangeError, setRangeError] = useState("");
+    const [isCustomRangeEditing, setIsCustomRangeEditing] = useState(false);
 
     useEffect(() => {
         fromDateRef.current = fromDate;
@@ -146,9 +147,10 @@ export default function Dashboard() {
     }, [liveRangeMs]);
 
     useEffect(() => {
+        if (isCustomRangeEditing) return;
         setCustomFromInput(formatDateTimeLocal(fromDate));
         setCustomToInput(formatDateTimeLocal(toDate));
-    }, [fromDate, toDate]);
+    }, [fromDate, toDate, isCustomRangeEditing]);
 
     const canAddServer = currentUser ? hasPermission(currentUser.permissions, Permissions.ADD_SERVER) || hasPermission(currentUser.permissions, Permissions.SERVER_MANAGEMENT) : false;
     const canManageServers = currentUser ? hasPermission(currentUser.permissions, Permissions.SERVER_MANAGEMENT) : false;
@@ -194,6 +196,7 @@ export default function Dashboard() {
 
     const handleRangeShift = async (direction: "prev" | "next") => {
         if (!url || !token) return;
+        setIsCustomRangeEditing(false);
 
         const currentFrom = fromDateRef.current;
         const currentTo = toDateRef.current;
@@ -227,6 +230,7 @@ export default function Dashboard() {
 
     const handleRangeReset = async () => {
         if (!url || !token) return;
+        setIsCustomRangeEditing(false);
         setDateOverridden(false);
         setRangeError("");
         const rangeNow = Date.now();
@@ -241,6 +245,7 @@ export default function Dashboard() {
     };
 
     const handleLiveRangeChange = async (hours: number) => {
+        setIsCustomRangeEditing(false);
         const snapped = liveRangeOptions.reduce((closest, option) => {
             if (Math.abs(option - hours) < Math.abs(closest - hours)) return option;
             return closest;
@@ -280,6 +285,7 @@ export default function Dashboard() {
         }
 
         setRangeError("");
+        setIsCustomRangeEditing(false);
         setDateOverridden(true);
         setFromDate(parsedFrom);
         setToDate(parsedTo);
@@ -660,7 +666,7 @@ export default function Dashboard() {
     if (!backendReachable) {
         return (
             <div className="flex min-h-screen items-center justify-center p-4">
-                <Card className="w-full max-w-xl">
+                <Card className="w-full max-w-xl border border-default-200/60 bg-content1/80 shadow-md backdrop-blur">
                     <CardHeader className="flex flex-col items-start gap-1">
                         <h2 className="text-xl font-semibold">Connection lost</h2>
                         <p className="text-sm text-default-500">The backend is currently unreachable.</p>
@@ -679,17 +685,24 @@ export default function Dashboard() {
     }
 
     if (!token) {
-        return (<div className="flex flex-col items-center justify-center py-2 h-screen min-w-96 w-96 max-w-96">Loading
-            server...</div>)
+        return (
+            <div className="flex min-h-screen items-center justify-center p-4">
+                <Card className="w-full max-w-sm border border-default-200/60 bg-content1/80 shadow-md backdrop-blur">
+                    <CardBody className="text-center text-sm text-default-400">
+                        Loading server...
+                    </CardBody>
+                </Card>
+            </div>
+        );
     }
 
     return (
         <>
-            <div className="flex flex-col min-h-screen p-3 pt-[max(env(safe-area-inset-top),1.75rem)] sm:p-4 space-y-4 pb-[max(env(safe-area-inset-bottom),1rem)]">
-            <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex w-full max-w-[1400px] flex-col space-y-5 p-4 pt-[max(env(safe-area-inset-top),1.75rem)] sm:p-6 pb-[max(env(safe-area-inset-bottom),1.25rem)] mx-auto">
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-default-200/60 bg-content1/70 px-4 py-3 shadow-sm backdrop-blur">
                 <div className="flex flex-col">
-                    <span className="text-sm text-default-400">Signed in as</span>
-                    <span className="text-lg font-semibold">{currentUser?.name || "Loading user..."}</span>
+                    <span className="text-xs uppercase tracking-wide text-default-400">Signed in as</span>
+                    <span className="text-lg font-semibold text-foreground">{currentUser?.name || "Loading user..."}</span>
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
                     {canChangeOwnPassword ? (
@@ -708,18 +721,21 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            <Card className="min-h-[520px] md:min-h-[560px] overflow-hidden">
-                <CardHeader>
-                    <h2 className="text-blueGray-100 mb-1 text-xl font-semibold">
+            <Card className="min-h-[520px] md:min-h-[560px] overflow-hidden border border-default-200/60 bg-content1/80 shadow-md backdrop-blur">
+                <CardHeader className="border-b border-default-200/60 bg-default-100/10">
+                    <div>
+                        <h2 className="mb-1 text-xl font-semibold text-foreground">
                         Currently connected players
-                    </h2>
+                        </h2>
+                        <p className="text-xs text-default-400">Live view of online players and range controls.</p>
+                    </div>
                 </CardHeader>
-                <CardBody className="h-[280px] md:h-[320px] p-0 overflow-hidden">
+                <CardBody className="h-[280px] md:h-[320px] p-0 overflow-hidden bg-default-100/5">
                     <OnlinePlayersChart ref={chartRef} data={data} hiddenServers={hiddenServers} />
                 </CardBody>
-                <CardFooter>
-                    <div className="flex w-full flex-col gap-2 text-xs text-blueGray-100">
-                        <div className="flex flex-wrap items-center gap-2">
+                <CardFooter className="border-t border-default-200/60 bg-default-100/10">
+                    <div className="flex w-full flex-col gap-2 text-xs text-default-400">
+                        <div className="flex flex-wrap items-center gap-2 text-default-500">
                             <Button size="sm" variant="flat" onPress={() => handleRangeShift("prev")}>
                                 Previous 2h
                             </Button>
@@ -730,9 +746,10 @@ export default function Dashboard() {
                                 Now
                             </Button>
                             <label className="flex items-center gap-2">
-                                <span className="text-blueGray-100">Live window</span>
+                                <span className="text-default-400">Live window</span>
                                 <input
-                                    className="h-2 w-32 cursor-pointer accent-primary"
+                                    aria-label="Live window range"
+                                    className="h-2 w-36 cursor-pointer accent-primary"
                                     type="range"
                                     min={1}
                                     max={24}
@@ -746,12 +763,12 @@ export default function Dashboard() {
                                         <option key={hours} value={hours} />
                                     ))}
                                 </datalist>
-                                <span className="text-blueGray-100">{liveRangeHours}h</span>
+                                <span className="text-default-400">{liveRangeHours}h</span>
                             </label>
                             {!isLiveRange ? (
-                                <span className="text-blueGray-100">Custom range</span>
+                                <span className="text-default-400">Custom range</span>
                             ) : (
-                                <span className="text-blueGray-100">Live range</span>
+                                <span className="text-default-400">Live range</span>
                             )}
                         </div>
                         <span>
@@ -773,6 +790,7 @@ export default function Dashboard() {
                                         const parsedTo = parseDateTimeLocal(customToInput);
                                         if (Number.isFinite(parsedTo) && parsed >= parsedTo) return;
                                     }
+                                    setIsCustomRangeEditing(true);
                                     setCustomFromInput(value);
                                 }}
                             />
@@ -790,6 +808,7 @@ export default function Dashboard() {
                                     if (!Number.isFinite(parsed) || parsed > Date.now()) return;
                                     const parsedFrom = parseDateTimeLocal(customFromInput);
                                     if (Number.isFinite(parsedFrom) && parsed <= parsedFrom) return;
+                                    setIsCustomRangeEditing(true);
                                     setCustomToInput(value);
                                 }}
                             />
@@ -804,8 +823,14 @@ export default function Dashboard() {
             </Card>
 
             <div>
-                <Card>
-                    <CardBody>
+                <Card className="border border-default-200/60 bg-content1/80 shadow-md backdrop-blur">
+                    <CardHeader className="border-b border-default-200/60 bg-default-100/10">
+                        <div>
+                            <h3 className="text-lg font-semibold text-foreground">Servers</h3>
+                            <p className="text-xs text-default-400">Search, filter, and manage visibility.</p>
+                        </div>
+                    </CardHeader>
+                    <CardBody className="p-2 sm:p-4">
                         <ServerTable
                             url={url}
                             token={token}
@@ -839,13 +864,17 @@ export default function Dashboard() {
                 <ModalContent>
                     {(onClose) => (
                         <>
-                            <ModalHeader className="flex flex-col gap-1">Change password</ModalHeader>
-                            <ModalBody>
+                            <ModalHeader className="flex flex-col gap-1">
+                                Change password
+                                <span className="text-sm font-normal text-default-400">Update your account credentials.</span>
+                            </ModalHeader>
+                            <ModalBody className="space-y-3">
                                 {accountError ? <p className="text-red-500">{accountError}</p> : null}
                                 <Input
                                     label="Current password"
                                     type="password"
                                     variant="bordered"
+                                    size="sm"
                                     value={currentPassword}
                                     onChange={(e) => setCurrentPassword(e.target.value)}
                                 />
@@ -853,6 +882,7 @@ export default function Dashboard() {
                                     label="New password"
                                     type="password"
                                     variant="bordered"
+                                    size="sm"
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
                                 />
@@ -860,6 +890,7 @@ export default function Dashboard() {
                                     label="Confirm new password"
                                     type="password"
                                     variant="bordered"
+                                    size="sm"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                 />
@@ -897,6 +928,7 @@ export default function Dashboard() {
                                     <Input
                                         label="Username"
                                         variant="bordered"
+                                        size="sm"
                                         value={newUserName}
                                         onChange={(e) => setNewUserName(e.target.value)}
                                     />
@@ -904,10 +936,12 @@ export default function Dashboard() {
                                         label="Temporary password"
                                         variant="bordered"
                                         type="password"
+                                        size="sm"
                                         value={newUserPassword}
                                         onChange={(e) => setNewUserPassword(e.target.value)}
                                     />
-                                    <div className="flex flex-col gap-2">
+                                    <div className="flex flex-col gap-2 rounded-lg border border-default-200/60 bg-default-100/10 p-3">
+                                        <span className="text-xs uppercase tracking-wide text-default-400">Permissions</span>
                                         <Checkbox
                                             isSelected={newUserPermissions.manageServers}
                                             onValueChange={(value) =>
@@ -955,7 +989,8 @@ export default function Dashboard() {
                                         </Checkbox>
                                     </div>
                                 </div>
-                                <div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs text-default-400">Users can be edited or reset below.</span>
                                     <Button color="primary" onPress={handleCreateUser} isLoading={isUserSubmitting}>
                                         Create user
                                     </Button>
@@ -1025,8 +1060,9 @@ export default function Dashboard() {
                         <>
                             <ModalHeader className="flex flex-col gap-1">
                                 Edit permissions for {userPermissionTarget?.name}
+                                <span className="text-sm font-normal text-default-400">Adjust access levels and visibility.</span>
                             </ModalHeader>
-                            <ModalBody>
+                            <ModalBody className="space-y-3">
                                 <Checkbox
                                     isSelected={editUserPermissions.manageServers}
                                     onValueChange={(value) =>
@@ -1096,12 +1132,14 @@ export default function Dashboard() {
                         <>
                             <ModalHeader className="flex flex-col gap-1">
                                 Reset password for {userPasswordTarget?.name}
+                                <span className="text-sm font-normal text-default-400">Set a temporary password and share it securely.</span>
                             </ModalHeader>
-                            <ModalBody>
+                            <ModalBody className="space-y-3">
                                 <Input
-                                    label="New password"
+                                    label="Temporary password"
                                     type="password"
                                     variant="bordered"
+                                    size="sm"
                                     value={userPassword}
                                     onChange={(e) => setUserPassword(e.target.value)}
                                 />

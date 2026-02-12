@@ -361,7 +361,7 @@ export function ServerTable({
             return;
         }
 
-        const points = (Array.isArray(json.points) ? json.points : [])
+        const rawPoints = (Array.isArray(json.points) ? json.points : [])
             .map((point: any) => ({
                 timestamp: Number(point.timestamp),
                 count: Number(point.count),
@@ -370,6 +370,16 @@ export function ServerTable({
                 Number.isFinite(point.timestamp) && Number.isFinite(point.count),
             )
             .sort((a: { timestamp: number; }, b: { timestamp: number; }) => a.timestamp - b.timestamp);
+
+        const minuteBuckets = new Map<number, { timestamp: number; count: number }>();
+        for (const point of rawPoints) {
+            const minuteKey = Math.floor(point.timestamp / 60000);
+            minuteBuckets.set(minuteKey, point);
+        }
+
+        const points = Array.from(minuteBuckets.values()).sort(
+            (a, b) => a.timestamp - b.timestamp
+        );
 
         const minimumCoverageMs = 24 * 60 * 60 * 1000;
 
@@ -534,12 +544,13 @@ export function ServerTable({
     const topContent = React.useMemo(() => {
         return (
             <div className="flex flex-col gap-4">
-                <div className="flex justify-between gap-3 items-end">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <Input
                         isClearable
-                        className="w-full sm:max-w-[15%]"
+                        className="w-full sm:max-w-xs"
                         placeholder="Search..."
                         startContent={<SearchIcon />}
+                        size="sm"
                         value={filterValue}
                         onClear={() => onClear()}
                         onValueChange={onSearchChange}
@@ -608,7 +619,7 @@ export function ServerTable({
                 bottomContent={bottomContent}
                 bottomContentPlacement="outside"
                 classNames={{
-                    wrapper: "max-h-[382px]",
+                    wrapper: "max-h-[382px] border border-default-200/60 bg-content1/60 shadow-sm",
                 }}
                 // @ts-ignore
                 sortDescriptor={sortDescriptor}
