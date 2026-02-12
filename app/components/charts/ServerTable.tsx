@@ -69,6 +69,7 @@ export function ServerTable({
     onServersChanged,
     hiddenServers,
     onToggleServer,
+    onToggleAll,
 }: {
     url: string | null,
     token: string,
@@ -80,6 +81,7 @@ export function ServerTable({
     onServersChanged: () => void;
     hiddenServers?: Set<string>;
     onToggleServer?: (serverName: string) => void;
+    onToggleAll?: (allServerNames: string[]) => void;
 }) {
     const [filterValue, setFilterValue] = React.useState("");
     const [visibleColumns, setVisibleColumns] = React.useState(new Set(INITIAL_VISIBLE_COLUMNS));
@@ -102,7 +104,7 @@ export function ServerTable({
     const [isPredicting, setIsPredicting] = React.useState(false);
     const [isDarkMode, setIsDarkMode] = React.useState(true);
 
-    const rowsPerPage = 6;
+    const [rowsPerPage, setRowsPerPage] = React.useState(6);
 
     const hasSearchFilter = Boolean(filterValue);
 
@@ -168,12 +170,16 @@ export function ServerTable({
         return columns;
     }, [canManageServers, canSeePrediction]);
 
+    const allServerNames = React.useMemo(() => data.map((s: any) => s.server), [data]);
+    const anyChartVisible = allServerNames.length > 0 && allServerNames.some((name: string) => !hiddenServers?.has(name));
+
     const headerColumns = React.useMemo(() => {
         // @ts-ignore
-        if (visibleColumns === "all") return tableColumns;
+        if (visibleColumns === "all") return tableColumns.map(c => ({ ...c }));
 
-        return tableColumns.filter((column) => Array.from(visibleColumns).includes(column.uid));
-    }, [visibleColumns, tableColumns]);
+        return tableColumns.filter((column) => Array.from(visibleColumns).includes(column.uid)).map(c => ({ ...c }));
+        // anyChartVisible is included to force HeroUI to re-render column headers when toggle-all state changes
+    }, [visibleColumns, tableColumns, anyChartVisible]);
 
     const filteredItems = React.useMemo(() => {
         let filteredData = [...data];
@@ -299,7 +305,7 @@ export function ServerTable({
                 )
             case "actions":
                 return (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 justify-end">
                         {canSeePrediction ? (
                             <Button size="sm" color="secondary" variant="flat" onPress={() => handlePredict(server.internalId, server.server)}>
                                 Predict
@@ -607,9 +613,26 @@ export function ServerTable({
                     total={pages}
                     onChange={setPage}
                 />
+                <label className="flex items-center gap-2 text-small text-default-400">
+                    Rows
+                    <select
+                        className="rounded-md border border-default-200 bg-transparent px-2 py-1 text-small text-default-500 outline-none"
+                        value={rowsPerPage}
+                        onChange={(e) => {
+                            setRowsPerPage(Number(e.target.value));
+                            setPage(1);
+                        }}
+                    >
+                        <option value={6}>6</option>
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                    </select>
+                </label>
             </div>
         );
-    }, [items.length, page, pages, hasSearchFilter]);
+    }, [items.length, page, pages, hasSearchFilter, rowsPerPage]);
 
     return (
         <>
@@ -633,9 +656,29 @@ export function ServerTable({
                         <TableColumn
                             key={column.uid}
                             allowsSorting={column.sortable}
-                            {...(column.uid === "chart" ? { className: "w-14" } : {})}
+                            {...(column.uid === "chart" ? { className: "w-14" } : column.uid === "actions" ? { className: "text-right" } : {})}
                         >
-                            {column.name}
+                            {column.uid === "chart" ? (
+                                <div
+                                    className="flex items-center justify-center cursor-pointer select-none"
+                                    role="button"
+                                    title={anyChartVisible ? "Hide all from chart" : "Show all on chart"}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onToggleAll?.(allServerNames);
+                                    }}
+                                >
+                                    <div
+                                        className="w-3 h-3 rounded-full"
+                                        style={{
+                                            backgroundColor: anyChartVisible ? "#a3a3a3" : "transparent",
+                                            boxShadow: anyChartVisible ? "0 0 6px #a3a3a3" : "none",
+                                            border: "2.5px solid #a3a3a3",
+                                            opacity: anyChartVisible ? 1 : 0.3,
+                                        }}
+                                    />
+                                </div>
+                            ) : column.name}
                         </TableColumn>
                     )}
                 </TableHeader>
@@ -705,7 +748,7 @@ export function ServerTable({
                                 ) : null}
                             </ModalBody>
                             <ModalFooter>
-                                <Button color="primary" variant="flat" onPress={onClose}>Close</Button>
+                                <Button color="danger" variant="flat" onPress={onClose}>Close</Button>
                             </ModalFooter>
                         </>
                     )}

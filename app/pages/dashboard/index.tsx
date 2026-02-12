@@ -170,6 +170,17 @@ export default function Dashboard() {
         });
     };
 
+    const handleToggleAll = (allServerNames: string[]) => {
+        setHiddenServers(prev => {
+            const anyVisible = allServerNames.some(name => !prev.has(name));
+            if (anyVisible) {
+                return new Set(allServerNames);
+            } else {
+                return new Set();
+            }
+        });
+    };
+
     const sortedTableData = React.useMemo(() => {
         return [...tableData].sort((a, b) => b.playerCount - a.playerCount);
     }, [tableData]);
@@ -847,6 +858,7 @@ export default function Dashboard() {
                             }}
                             hiddenServers={hiddenServers}
                             onToggleServer={handleToggleServer}
+                            onToggleAll={handleToggleAll}
                         />
                     </CardBody>
                 </Card>

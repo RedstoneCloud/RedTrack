@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm add:*)",
+      "Bash(node -e:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pnpm run build:*)",
+      "Bash(pnpm exec tsc:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd interactive first-time setup wizard for backend\n\nAdds an interactive CLI setup that runs automatically when no .env file\nexists, guiding through MongoDB URI, port, ping interval, HTTPS, and\nadmin account creation with input validation, colored output, and\npassword masking. Supports --skip-setup flag for CI/Docker environments.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(npx next build:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nRedesign chart: smooth lines, move legend to table, fix Now button zoom reset\n\n- Add tension \\(0.3\\) to chart lines for smoother curves\n- Remove built-in Chart.js legend, replace with clickable color dots\n  in the server table''s new \"Chart\" column to toggle server visibility\n- Sort table rows by player count descending\n- Fix \"Now\" button to also reset chart zoom via forwardRef/useImperativeHandle\n- Remove redundant \"Reset to live\" button\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  }
+}

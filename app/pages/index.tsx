@@ -193,7 +193,7 @@ export default function Home() {
               ) : (
                 <div className="mt-2 flex max-h-[35vh] flex-col gap-2 overflow-y-auto pr-1">
                   {servers.map((server: any, index: any) => (
-                    <div className="inline-flex gap-2" key={index}>
+                    <div className="flex gap-2" key={index}>
                       <Button
                         key={index}
                         variant="flat"
@@ -209,9 +209,9 @@ export default function Home() {
                       </Button>
                       <Button
                         key={"edit" + index}
-                        size="sm"
                         variant="flat"
-                        className="min-w-10"
+                        className="min-w-10 self-stretch"
+                        isIconOnly
                         onClick={() => {
                           openEditForm(server, index);
                         }}
@@ -221,10 +221,10 @@ export default function Home() {
                       </Button>
                       <Button
                         key={"del" + index}
-                        size="sm"
                         variant="flat"
                         color="danger"
-                        className="min-w-10"
+                        className="min-w-10 self-stretch"
+                        isIconOnly
                         onClick={() => {
                           deleteServer(index);
                         }}
@@ -237,8 +237,8 @@ export default function Home() {
                 </div>
               )}
             </CardBody>
-            <CardFooter>
-              <div className="flex w-full items-center gap-2">
+            <CardFooter className="px-3">
+              <div className="flex w-full items-center gap-2 pr-1">
                 <Button color="primary" className="w-full" startContent={<PlusIcon />} variant="shadow" onClick={openCreateForm}>
                   Add new server
                 </Button>
@@ -247,7 +247,7 @@ export default function Home() {
                     href="https://discord.gg/cTNTrQsJSx"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-12"
+                    className="min-w-10"
                     variant='ghost'
                     color='default'
                     isIconOnly
@@ -260,7 +260,7 @@ export default function Home() {
                     href="https://github.com/RedstoneCloud/RedTrack"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-12"
+                    className="min-w-10"
                     variant='ghost'
                     color='default'
                     isIconOnly
