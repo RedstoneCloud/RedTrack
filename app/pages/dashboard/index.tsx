@@ -138,6 +138,7 @@ export default function Dashboard() {
     const [isTableSlow, setIsTableSlow] = useState(false);
     const hasLoadedChartRef = useRef(false);
     const hasLoadedTableRef = useRef(false);
+    const hasLoadedServerPrefsRef = useRef(false);
 
     useEffect(() => {
         fromDateRef.current = fromDate;
@@ -195,12 +196,22 @@ export default function Dashboard() {
     };
 
     useEffect(() => {
+        if (!hasLoadedServerPrefsRef.current) return;
         Preferences.set({
             key: `hiddenServers:${activeServerIndex}`,
             value: JSON.stringify(Array.from(hiddenServers)),
         }).catch(() => {
         });
     }, [hiddenServers, activeServerIndex]);
+
+    useEffect(() => {
+        if (!hasLoadedServerPrefsRef.current) return;
+        Preferences.set({
+            key: `liveRangeHours:${activeServerIndex}`,
+            value: String(liveRangeHours),
+        }).catch(() => {
+        });
+    }, [liveRangeHours, activeServerIndex]);
 
     const handleToggleAll = (allServerNames: string[]) => {
         setHiddenServers(prev => {
@@ -623,11 +634,31 @@ export default function Dashboard() {
         await loadUsers(url, token);
     };
 
+    const applyCachedTableData = async (serverIndex: number) => {
+        try {
+            const cached = await Preferences.get({ key: `latestStats:${serverIndex}` });
+            if (!cached.value) return false;
+            const parsed = JSON.parse(cached.value) as TableRow[];
+            if (!Array.isArray(parsed) || parsed.length === 0) return false;
+            setTableData(parsed.map((item) => ({
+                ...item,
+                playerCountDevelopment: "stagnant",
+            })));
+            hasLoadedTableRef.current = true;
+            setIsTableLoading(false);
+            setIsTableCached(true);
+            return true;
+        } catch {
+            return false;
+        }
+    };
+
     async function reloadData() {
         const config = serverConfig;
         if (!config?.token || !config?.url) return;
         const tok = config.token as any;
         const ur = config.url as any;
+        const serverIndex = parseInt(router.query.server as string) || 0;
 
         setToken(tok);
         setUrl(ur);
@@ -685,7 +716,8 @@ export default function Dashboard() {
             Preferences.set({ key: `latestStats:${serverIndex}`, value: JSON.stringify(dat) }).catch(() => {
             });
             setIsTableSlow(false);
-        }).catch(() => {
+        }).catch(async () => {
+            await applyCachedTableData(serverIndex);
         });
 
         const latestTimeoutMs = 5000;
@@ -701,7 +733,8 @@ export default function Dashboard() {
         if (latestResult === "timeout") {
             setIsTableLoading(false);
             setIsTableSlow(true);
-            if (!hasLoadedTableRef.current && Object.keys(serverDetails).length > 0) {
+            const appliedCached = await applyCachedTableData(serverIndex);
+            if (!appliedCached && !hasLoadedTableRef.current && Object.keys(serverDetails).length > 0) {
                 const placeholderRows = buildPlaceholderRows(serverDetails);
                 if (placeholderRows.length > 0) {
                     setTableData(placeholderRows);
@@ -750,18 +783,36 @@ export default function Dashboard() {
 
     useEffect(() => {
         let active = true;
-        Preferences.get({ key: "servers" }).then((dat) => {
-            if (!active) return;
-            const servers = JSON.parse(dat.value || "[]");
-            const id = parseInt(router.query.server as string) || 0;
-            const server = servers[id];
-            if (server?.token && server?.url) {
+        hasLoadedServerPrefsRef.current = false;
+
+        const loadPrefs = async () => {
+            try {
+                const dat = await Preferences.get({ key: "servers" });
+                if (!active) return;
+                const servers = JSON.parse(dat.value || "[]");
+                const id = parseInt(router.query.server as string) || 0;
+                const server = servers[id];
+                if (!server?.token || !server?.url) {
+                    hasLoadedServerPrefsRef.current = true;
+                    return;
+                }
+
                 setActiveServerIndex(id);
                 setServerConfig({ token: server.token, url: server.url });
-                Preferences.get({ key: `latestStats:${id}` }).then((cached) => {
-                    if (!active || !cached.value) return;
+
+                const [latestStats, serverDetailsCache, hiddenServersCache, customRangeCache, liveRangeCache] = await Promise.all([
+                    Preferences.get({ key: `latestStats:${id}` }),
+                    Preferences.get({ key: `serverDetails:${id}` }),
+                    Preferences.get({ key: `hiddenServers:${id}` }),
+                    Preferences.get({ key: `customRangeMs:${id}` }),
+                    Preferences.get({ key: `liveRangeHours:${id}` }),
+                ]);
+
+                if (!active) return;
+
+                if (latestStats.value) {
                     try {
-                        const parsed = JSON.parse(cached.value) as TableRow[];
+                        const parsed = JSON.parse(latestStats.value) as TableRow[];
                         if (Array.isArray(parsed) && parsed.length > 0) {
                             setTableData(parsed.map((item) => ({
                                 ...item,
@@ -773,11 +824,11 @@ export default function Dashboard() {
                         }
                     } catch {
                     }
-                });
-                Preferences.get({ key: `serverDetails:${id}` }).then((cached) => {
-                    if (!active || !cached.value) return;
+                }
+
+                if (serverDetailsCache.value) {
                     try {
-                        const parsed = JSON.parse(cached.value);
+                        const parsed = JSON.parse(serverDetailsCache.value);
                         if (parsed && typeof parsed === "object") {
                             setServerDetails(parsed);
                             if (!hasLoadedTableRef.current) {
@@ -792,21 +843,21 @@ export default function Dashboard() {
                         }
                     } catch {
                     }
-                });
-                Preferences.get({ key: `hiddenServers:${id}` }).then((cached) => {
-                    if (!active || !cached.value) return;
+                }
+
+                if (hiddenServersCache.value) {
                     try {
-                        const parsed = JSON.parse(cached.value) as string[];
+                        const parsed = JSON.parse(hiddenServersCache.value) as string[];
                         if (Array.isArray(parsed)) {
                             setHiddenServers(new Set(parsed));
                         }
                     } catch {
                     }
-                });
-                Preferences.get({ key: `customRangeMs:${id}` }).then((cached) => {
-                    if (!active || !cached.value) return;
+                }
+
+                if (customRangeCache.value) {
                     try {
-                        const parsed = Number(cached.value);
+                        const parsed = Number(customRangeCache.value);
                         if (Number.isFinite(parsed) && parsed > 0) {
                             const now = Date.now();
                             setCustomFromInput(formatDateTimeLocal(now - parsed));
@@ -814,14 +865,29 @@ export default function Dashboard() {
                         }
                     } catch {
                     }
-                });
+                }
+
+                if (liveRangeCache.value) {
+                    const parsed = Number(liveRangeCache.value);
+                    if (Number.isFinite(parsed) && parsed > 0) {
+                        setLiveRangeHours(parsed);
+                    }
+                }
+
+                hasLoadedServerPrefsRef.current = true;
+            } catch {
+                if (active) {
+                    hasLoadedServerPrefsRef.current = true;
+                }
             }
-        }).catch(() => {
-        });
+        };
+
+        loadPrefs();
+
         return () => {
             active = false;
         };
-    }, [router.query.server]);
+    }, [router.query.server, buildPlaceholderRows]);
 
     useEffect(() => {
         if (!token || !url || !currentUser) return;
@@ -1052,8 +1118,8 @@ export default function Dashboard() {
                             </div>
                             <div className="flex items-center gap-2">
                                 {isTableCached ? (
-                                    <span className="rounded-full border border-default-200/60 bg-default-100/10 px-3 py-1 text-[11px] uppercase tracking-wide text-default-400">
-                                        Showing cached data
+                                    <span className="rounded-full border border-warning-300/60 bg-warning-50/10 px-3 py-1 text-[11px] uppercase tracking-wide text-warning-400">
+                                        Cached data shown
                                     </span>
                                 ) : null}
                                 {isTableSlow && !isTableLoading ? (
@@ -1086,9 +1152,9 @@ export default function Dashboard() {
                                     if (url && token && canManageServers) {
                                         const serverIndex = parseInt(router.query.server as string) || 0;
                                         loadServerDetails(url, token, serverIndex);
-                                }
-                                reloadData();
-                            }}
+                                    }
+                                    reloadData();
+                                }}
                                 hiddenServers={hiddenServers}
                                 onToggleServer={handleToggleServer}
                                 onToggleAll={handleToggleAll}
