@@ -155,7 +155,7 @@ export function ServerTable({
         };
     }, [isDarkMode]);
     const predictionLineColor = "#9f74ca";
-    const predictionBackground = "var(--heroui-content1)";
+    const predictionBackground = "color-mix(in rgb, var(--heroui-content1) 82%, #000000 18%)";
 
     const tableColumns = React.useMemo(() => {
         const columns = [...baseColumns];
@@ -387,15 +387,33 @@ export function ServerTable({
             )
             .sort((a: { timestamp: number; }, b: { timestamp: number; }) => a.timestamp - b.timestamp);
 
-        const minuteBuckets = new Map<number, { timestamp: number; count: number }>();
+        const minuteBuckets = new Map<number, { timestamp: number; count: number; n: number }>();
         for (const point of rawPoints) {
             const minuteKey = Math.floor(point.timestamp / 60000);
-            minuteBuckets.set(minuteKey, point);
+            const existingBucket = minuteBuckets.get(minuteKey);
+
+            if (!existingBucket) {
+                minuteBuckets.set(minuteKey, {
+                    timestamp: point.timestamp,
+                    count: point.count,
+                    n: 1,
+                });
+            } else {
+                const newN = existingBucket.n + 1;
+                const newCount =
+                    (existingBucket.count * existingBucket.n + point.count) / newN;
+
+                minuteBuckets.set(minuteKey, {
+                    timestamp: point.timestamp,
+                    count: newCount,
+                    n: newN,
+                });
+            }
         }
 
-        const points = Array.from(minuteBuckets.values()).sort(
-            (a, b) => a.timestamp - b.timestamp
-        );
+        const points = Array.from(minuteBuckets.values())
+            .map(({ timestamp, count }) => ({ timestamp, count }))
+            .sort((a, b) => a.timestamp - b.timestamp);
 
         const minimumCoverageMs = 24 * 60 * 60 * 1000;
 
@@ -766,7 +784,10 @@ export function ServerTable({
                                 {!isPredicting && !predictionError && predictionSeries.length > 0 ? (
                                     <div
                                         className="h-80 w-full rounded-xl border border-default-200 p-2 shadow-inner"
-                                        style={{ background: predictionBackground }}
+                                        style={{
+                                            backgroundColor: predictionBackground,
+                                            boxShadow: "inset 0 0 0 9999px rgba(0,0,0,0.26)",
+                                        }}
                                     >
                                         <PredictionChart
                                             points={predictionSeries}

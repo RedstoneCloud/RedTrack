@@ -113,7 +113,7 @@ export default function Dashboard() {
         return Number.isFinite(parsed) ? parsed : NaN;
     };
 
-    const getClampedRange = (rangeFrom: number, rangeTo: number) => {
+    const getClampedRange = React.useCallback((rangeFrom: number, rangeTo: number) => {
         const nowTs = Date.now();
         const clampedTo = Math.min(rangeTo, nowTs);
         const clampedFrom = Math.min(rangeFrom, clampedTo - 1);
@@ -121,7 +121,7 @@ export default function Dashboard() {
             from: clampedFrom,
             to: clampedTo,
         };
-    };
+    }, []);
 
     const chartRef = useRef<OnlinePlayersChartHandle>(null);
     const fromDateRef = useRef(fromDate);
@@ -235,7 +235,31 @@ export default function Dashboard() {
     const maxSelectableDateTime = formatDateTimeLocal(now);
     const fromInputMax = customToInput && customToInput < maxSelectableDateTime ? customToInput : maxSelectableDateTime;
 
-    const fetchChartRange = async (
+    const requestBackend = React.useCallback(async (activeUrl: string, activeToken: string, path: string, init?: RequestInit) => {
+        try {
+            const response = await fetch(activeUrl + path, {
+                ...init,
+                headers: {
+                    "authorization": "Bearer " + activeToken,
+                    ...(init?.headers || {}),
+                }
+            });
+            setBackendReachable(true);
+            setBackendError("");
+            if (response.status === 401 || response.status === 403) {
+                setAuthError("Authentication failed for this server. Please re-authenticate.");
+            } else if (response.ok) {
+                setAuthError("");
+            }
+            return response;
+        } catch (error) {
+            setBackendReachable(false);
+            setBackendError(error instanceof Error ? error.message : "Unable to reach backend.");
+            throw error;
+        }
+    }, []);
+
+    const fetchChartRange = React.useCallback(async (
         baseUrl: string,
         sessionToken: string,
         rangeFrom: number,
@@ -257,7 +281,7 @@ export default function Dashboard() {
         setData((prev: any) => ({ type: prev.type, from: clamped.from, to: clamped.to, ...dat }));
         hasLoadedChartRef.current = true;
         setIsChartLoading(false);
-    };
+    }, [getClampedRange, requestBackend]);
 
     const handleRangeShift = async (direction: "prev" | "next") => {
         if (!url || !token) return;
@@ -362,30 +386,6 @@ export default function Dashboard() {
         }).catch(() => {
         });
         await fetchChartRange(url, token, parsedFrom, parsedTo, { showLoading: true });
-    };
-
-    const requestBackend = async (activeUrl: string, activeToken: string, path: string, init?: RequestInit) => {
-        try {
-            const response = await fetch(activeUrl + path, {
-                ...init,
-                headers: {
-                    "authorization": "Bearer " + activeToken,
-                    ...(init?.headers || {}),
-                }
-            });
-            setBackendReachable(true);
-            setBackendError("");
-            if (response.status === 401 || response.status === 403) {
-                setAuthError("Authentication failed for this server. Please re-authenticate.");
-            } else if (response.ok) {
-                setAuthError("");
-            }
-            return response;
-        } catch (error) {
-            setBackendReachable(false);
-            setBackendError(error instanceof Error ? error.message : "Unable to reach backend.");
-            throw error;
-        }
     };
 
     const loadCurrentUser = async (activeUrl: string, activeToken: string) => {
@@ -653,7 +653,7 @@ export default function Dashboard() {
         }
     };
 
-    async function reloadData() {
+    const reloadData = React.useCallback(async () => {
         const config = serverConfig;
         if (!config?.token || !config?.url) return;
         const tok = config.token as any;
@@ -684,7 +684,13 @@ export default function Dashboard() {
                 'Content-Type': 'application/json',
             }
         }).then(async (response) => {
-            if (response.status === 401 || response.status === 403) return;
+            if (response.status === 401 || response.status === 403) {
+                hasLoadedTableRef.current = true;
+                setIsTableLoading(false);
+                setIsTableCached(true);
+                setIsTableSlow(false);
+                return;
+            }
             const dat = await response.json();
             setTableData((prevTableData) => {
                 const tableDataMap = prevTableData && prevTableData.length > 0 ? new Map(prevTableData.map((item) => [item.internalId, item])) : null;
@@ -749,7 +755,7 @@ export default function Dashboard() {
         }
 
         await Promise.allSettled([latestPromise, chartPromise]);
-    }
+    }, [serverConfig, router.query.server, buildPlaceholderRows, serverDetails, requestBackend, fetchChartRange]);
 
     useEffect(() => {
         const intervalId = setInterval(async () => {
@@ -763,7 +769,7 @@ export default function Dashboard() {
         });
 
         return () => clearInterval(intervalId);
-    }, [router.query, router, serverConfig]);
+    }, [router.query, router, serverConfig, reloadData]);
 
     useEffect(() => {
         router.beforePopState(() => {

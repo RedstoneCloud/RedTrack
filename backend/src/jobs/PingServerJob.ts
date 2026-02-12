@@ -134,7 +134,7 @@ async function pingAll() {
             }
         }
         const peakBackfill = peakBackfills.get(serverId);
-        if (peakBackfill?.peak != null && peakBackfill.timestamp != null) {
+        if (peakBackfill?.peak != null && peakBackfill.timestamp != null && peakBackfill.peak > dailyPeak) {
             dailyPeak = peakBackfill.peak;
             dailyPeakTimestamp = peakBackfill.timestamp;
         }
