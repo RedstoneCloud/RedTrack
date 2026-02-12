@@ -39,8 +39,8 @@ type TableRow = {
 };
 
 export default function Dashboard() {
-    let [token, setToken] = useState(null);
-    let [url, setUrl] = useState(null);
+    let [token, setToken] = useState<string | null>(null);
+    let [url, setUrl] = useState<string | null>(null);
     let router = useRouter();
 
     let [data, setData] = useState({
@@ -52,6 +52,8 @@ export default function Dashboard() {
     let [backendReachable, setBackendReachable] = useState(true);
     let [backendError, setBackendError] = useState("");
     const [authError, setAuthError] = useState("");
+    const [serverConfig, setServerConfig] = useState<{ token: string; url: string } | null>(null);
+    const [activeServerIndex, setActiveServerIndex] = useState(0);
     let [fromDate, setFromDate] = useState(new Date().getTime() - 60 * 1000 * 60 * 6)
     let [toDate, setToDate] = useState(new Date().getTime());
     let [dateOverridden, setDateOverridden] = useState(false);
@@ -132,6 +134,8 @@ export default function Dashboard() {
     const [isCustomRangeEditing, setIsCustomRangeEditing] = useState(false);
     const [isChartLoading, setIsChartLoading] = useState(true);
     const [isTableLoading, setIsTableLoading] = useState(true);
+    const [isTableCached, setIsTableCached] = useState(false);
+    const [isTableSlow, setIsTableSlow] = useState(false);
     const hasLoadedChartRef = useRef(false);
     const hasLoadedTableRef = useRef(false);
 
@@ -163,6 +167,21 @@ export default function Dashboard() {
     const canChangeOwnPassword = currentUser ? !hasPermission(currentUser.permissions, Permissions.CANNOT_CHANGE_PASSWORD) : false;
     const canSeePrediction = currentUser ? hasPermission(currentUser.permissions, Permissions.CAN_SEE_PREDICTION) : false;
 
+    const buildPlaceholderRows = React.useCallback((details: Record<string, { name: string; ip: string; port: number; color: string; bedrock: boolean }>) => {
+        return Object.entries(details).map(([id, detail]) => ({
+            internalId: id,
+            server: detail.name,
+            playerCount: 0,
+            playerCountDevelopment: "stagnant",
+            dailyPeak: 0,
+            dailyPeakTimestamp: 0,
+            record: 0,
+            recordTimestamp: 0,
+            invalidPings: false,
+            outdated: false,
+        })) as TableRow[];
+    }, []);
+
     const handleToggleServer = (serverName: string) => {
         setHiddenServers(prev => {
             const next = new Set(prev);
@@ -174,6 +193,14 @@ export default function Dashboard() {
             return next;
         });
     };
+
+    useEffect(() => {
+        Preferences.set({
+            key: `hiddenServers:${activeServerIndex}`,
+            value: JSON.stringify(Array.from(hiddenServers)),
+        }).catch(() => {
+        });
+    }, [hiddenServers, activeServerIndex]);
 
     const handleToggleAll = (allServerNames: string[]) => {
         setHiddenServers(prev => {
@@ -318,6 +345,11 @@ export default function Dashboard() {
         setToDate(parsedTo);
         fromDateRef.current = parsedFrom;
         toDateRef.current = parsedTo;
+        Preferences.set({
+            key: `customRangeMs:${activeServerIndex}`,
+            value: String(parsedTo - parsedFrom),
+        }).catch(() => {
+        });
         await fetchChartRange(url, token, parsedFrom, parsedTo, { showLoading: true });
     };
 
@@ -365,7 +397,7 @@ export default function Dashboard() {
         });
     };
 
-    const loadServerDetails = async (activeUrl: string, activeToken: string) => {
+    const loadServerDetails = async (activeUrl: string, activeToken: string, serverIndex?: number) => {
         const response = await requestBackend(activeUrl, activeToken, "/api/servermanage/list", {
             method: "GET",
             headers: {
@@ -387,6 +419,10 @@ export default function Dashboard() {
             return acc;
         }, {});
         setServerDetails(details);
+        if (typeof serverIndex === "number") {
+            Preferences.set({ key: `serverDetails:${serverIndex}`, value: JSON.stringify(details) }).catch(() => {
+            });
+        }
     };
 
     const loadUsers = async (activeUrl: string, activeToken: string) => {
@@ -588,73 +624,94 @@ export default function Dashboard() {
     };
 
     async function reloadData() {
-        await Preferences.get({ key: 'servers' }).then(async (dat) => {
-            let servers = await JSON.parse(dat.value || "[]")
-            let id = parseInt(router.query.server as string) || 0;
-            let server = servers[id];
-            if (server) {
-                let tok = servers[id].token
-                let ur = servers[id].url
+        const config = serverConfig;
+        if (!config?.token || !config?.url) return;
+        const tok = config.token as any;
+        const ur = config.url as any;
 
-                setToken(tok)
-                setUrl(ur)
-                setAuthError("");
+        setToken(tok);
+        setUrl(ur);
+        setAuthError("");
 
-                if (tok != null && ur != null) {
-                    const now = Date.now();
-                    const effectiveFrom = dateOverriddenRef.current ? fromDateRef.current : now - liveRangeMsRef.current;
-                    const effectiveTo = dateOverriddenRef.current ? toDateRef.current : now;
+        const now = Date.now();
+        const effectiveFrom = dateOverriddenRef.current ? fromDateRef.current : now - liveRangeMsRef.current;
+        const effectiveTo = dateOverriddenRef.current ? toDateRef.current : now;
 
-                    if (!dateOverriddenRef.current) {
-                        setFromDate(effectiveFrom);
-                        setToDate(effectiveTo);
-                    }
+        if (!dateOverriddenRef.current) {
+            setFromDate(effectiveFrom);
+            setToDate(effectiveTo);
+        }
 
-                    if (!hasLoadedTableRef.current) {
-                        setIsTableLoading(true);
-                    }
-                    const response = await requestBackend(ur, tok, "/api/stats/latest", {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
+        if (!hasLoadedTableRef.current) {
+            setIsTableLoading(true);
+            setIsTableSlow(false);
+        }
+
+        const latestPromise = requestBackend(ur, tok, "/api/stats/latest", {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        }).then(async (response) => {
+            if (response.status === 401 || response.status === 403) return;
+            const dat = await response.json();
+            setTableData((prevTableData) => {
+                const tableDataMap = prevTableData && prevTableData.length > 0 ? new Map(prevTableData.map((item) => [item.internalId, item])) : null;
+
+                const updatedData = dat.map((item: TableRow) => {
+                    const previousData = tableDataMap ? tableDataMap.get(item.internalId) : null;
+
+                    let playerCountDevelopment = "stagnant";
+                    if (previousData) {
+                        if (item.playerCount > previousData.playerCount) {
+                            playerCountDevelopment = "increasing";
+                        } else if (item.playerCount < previousData.playerCount) {
+                            playerCountDevelopment = "decreasing";
                         }
-                    });
-                    if (response.status === 401 || response.status === 403) {
-                        return;
                     }
-                    const dat = await response.json();
-                    setTableData((prevTableData) => {
-                        const tableDataMap = prevTableData && prevTableData.length > 0 ? new Map(prevTableData.map((item) => [item.internalId, item])) : null;
 
-                        const updatedData = dat.map((item: TableRow) => {
-                            const previousData = tableDataMap ? tableDataMap.get(item.internalId) : null;
+                    return {
+                        ...item,
+                        playerCountDevelopment,
+                    };
+                });
 
-                            let playerCountDevelopment = "stagnant";
-                            if (previousData) {
-                                if (item.playerCount > previousData.playerCount) {
-                                    playerCountDevelopment = "increasing";
-                                } else if (item.playerCount < previousData.playerCount) {
-                                    playerCountDevelopment = "decreasing";
-                                }
-                            }
+                return updatedData;
+            });
+            hasLoadedTableRef.current = true;
+            setIsTableLoading(false);
+            setIsTableCached(false);
+            const serverIndex = parseInt(router.query.server as string) || 0;
+            Preferences.set({ key: `latestStats:${serverIndex}`, value: JSON.stringify(dat) }).catch(() => {
+            });
+            setIsTableSlow(false);
+        }).catch(() => {
+        });
 
-                            return {
-                                ...item,
-                                playerCountDevelopment,
-                            };
-                        });
+        const latestTimeoutMs = 5000;
+        const timeoutPromise = new Promise<"timeout">((resolve) => {
+            setTimeout(() => resolve("timeout"), latestTimeoutMs);
+        });
 
-                        return updatedData;
-                    })
+        const chartPromise = !dateOverriddenRef.current
+            ? fetchChartRange(ur, tok, effectiveFrom, effectiveTo, { showLoading: !hasLoadedChartRef.current })
+            : Promise.resolve();
+
+        const latestResult = await Promise.race([latestPromise.then(() => "ok" as const), timeoutPromise]);
+        if (latestResult === "timeout") {
+            setIsTableLoading(false);
+            setIsTableSlow(true);
+            if (!hasLoadedTableRef.current && Object.keys(serverDetails).length > 0) {
+                const placeholderRows = buildPlaceholderRows(serverDetails);
+                if (placeholderRows.length > 0) {
+                    setTableData(placeholderRows);
+                    setIsTableCached(true);
                     hasLoadedTableRef.current = true;
-                    setIsTableLoading(false);
-
-                    if (!dateOverriddenRef.current) {
-                        await fetchChartRange(ur, tok, effectiveFrom, effectiveTo, { showLoading: !hasLoadedChartRef.current });
-                    }
                 }
             }
-        });
+        }
+
+        await Promise.allSettled([latestPromise, chartPromise]);
     }
 
     useEffect(() => {
@@ -669,7 +726,7 @@ export default function Dashboard() {
         });
 
         return () => clearInterval(intervalId);
-    }, [router.query, router]);
+    }, [router.query, router, serverConfig]);
 
     useEffect(() => {
         router.beforePopState(() => {
@@ -692,16 +749,92 @@ export default function Dashboard() {
     }, [token, url]);
 
     useEffect(() => {
+        let active = true;
+        Preferences.get({ key: "servers" }).then((dat) => {
+            if (!active) return;
+            const servers = JSON.parse(dat.value || "[]");
+            const id = parseInt(router.query.server as string) || 0;
+            const server = servers[id];
+            if (server?.token && server?.url) {
+                setActiveServerIndex(id);
+                setServerConfig({ token: server.token, url: server.url });
+                Preferences.get({ key: `latestStats:${id}` }).then((cached) => {
+                    if (!active || !cached.value) return;
+                    try {
+                        const parsed = JSON.parse(cached.value) as TableRow[];
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            setTableData(parsed.map((item) => ({
+                                ...item,
+                                playerCountDevelopment: "stagnant",
+                            })));
+                            hasLoadedTableRef.current = true;
+                            setIsTableLoading(false);
+                            setIsTableCached(true);
+                        }
+                    } catch {
+                    }
+                });
+                Preferences.get({ key: `serverDetails:${id}` }).then((cached) => {
+                    if (!active || !cached.value) return;
+                    try {
+                        const parsed = JSON.parse(cached.value);
+                        if (parsed && typeof parsed === "object") {
+                            setServerDetails(parsed);
+                            if (!hasLoadedTableRef.current) {
+                                const placeholderRows = buildPlaceholderRows(parsed);
+                                if (placeholderRows.length > 0) {
+                                    setTableData(placeholderRows);
+                                    setIsTableCached(true);
+                                    hasLoadedTableRef.current = true;
+                                    setIsTableLoading(false);
+                                }
+                            }
+                        }
+                    } catch {
+                    }
+                });
+                Preferences.get({ key: `hiddenServers:${id}` }).then((cached) => {
+                    if (!active || !cached.value) return;
+                    try {
+                        const parsed = JSON.parse(cached.value) as string[];
+                        if (Array.isArray(parsed)) {
+                            setHiddenServers(new Set(parsed));
+                        }
+                    } catch {
+                    }
+                });
+                Preferences.get({ key: `customRangeMs:${id}` }).then((cached) => {
+                    if (!active || !cached.value) return;
+                    try {
+                        const parsed = Number(cached.value);
+                        if (Number.isFinite(parsed) && parsed > 0) {
+                            const now = Date.now();
+                            setCustomFromInput(formatDateTimeLocal(now - parsed));
+                            setCustomToInput(formatDateTimeLocal(now));
+                        }
+                    } catch {
+                    }
+                });
+            }
+        }).catch(() => {
+        });
+        return () => {
+            active = false;
+        };
+    }, [router.query.server]);
+
+    useEffect(() => {
         if (!token || !url || !currentUser) return;
         if (hasPermission(currentUser.permissions, Permissions.SERVER_MANAGEMENT)) {
-            loadServerDetails(url, token).catch(() => {
+            const serverIndex = parseInt(router.query.server as string) || 0;
+            loadServerDetails(url, token, serverIndex).catch(() => {
             });
         }
         if (hasPermission(currentUser.permissions, Permissions.USER_MANAGEMENT)) {
             loadUsers(url, token).catch(() => {
             });
         }
-    }, [currentUser, token, url]);
+    }, [currentUser, token, url, router.query.server]);
 
 
     if (authError) {
@@ -912,9 +1045,23 @@ export default function Dashboard() {
             <div>
                 <Card className="border border-default-200/60 bg-content1/80 shadow-md backdrop-blur">
                     <CardHeader className="border-b border-default-200/60 bg-default-100/10">
-                        <div>
-                            <h3 className="text-lg font-semibold text-foreground">Servers</h3>
-                            <p className="text-xs text-default-400">Search, filter, and manage visibility.</p>
+                        <div className="flex w-full items-start justify-between gap-3">
+                            <div>
+                                <h3 className="text-lg font-semibold text-foreground">Servers</h3>
+                                <p className="text-xs text-default-400">Search, filter, and manage visibility.</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {isTableCached ? (
+                                    <span className="rounded-full border border-default-200/60 bg-default-100/10 px-3 py-1 text-[11px] uppercase tracking-wide text-default-400">
+                                        Showing cached data
+                                    </span>
+                                ) : null}
+                                {isTableSlow && !isTableLoading ? (
+                                    <span className="rounded-full border border-warning-300/60 bg-warning-50/10 px-3 py-1 text-[11px] uppercase tracking-wide text-warning-400">
+                                        Fetching latest…
+                                    </span>
+                                ) : null}
+                            </div>
                         </div>
                     </CardHeader>
                     <CardBody className="p-2 sm:p-4">
@@ -934,12 +1081,14 @@ export default function Dashboard() {
                                 canManageServers={canManageServers}
                                 canSeePrediction={canSeePrediction}
                                 serverDetails={serverDetails}
+                                isCached={isTableCached}
                                 onServersChanged={() => {
                                     if (url && token && canManageServers) {
-                                        loadServerDetails(url, token);
-                                    }
-                                    reloadData();
-                                }}
+                                        const serverIndex = parseInt(router.query.server as string) || 0;
+                                        loadServerDetails(url, token, serverIndex);
+                                }
+                                reloadData();
+                            }}
                                 hiddenServers={hiddenServers}
                                 onToggleServer={handleToggleServer}
                                 onToggleAll={handleToggleAll}

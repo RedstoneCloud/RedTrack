@@ -69,6 +69,7 @@ export function ServerTable({
     onServersChanged,
     hiddenServers,
     onToggleServer,
+    isCached = false,
     onToggleAll,
 }: {
     url: string | null,
@@ -81,6 +82,7 @@ export function ServerTable({
     onServersChanged: () => void;
     hiddenServers?: Set<string>;
     onToggleServer?: (serverName: string) => void;
+    isCached?: boolean;
     onToggleAll?: (allServerNames: string[]) => void;
 }) {
     const [filterValue, setFilterValue] = React.useState("");
@@ -275,6 +277,9 @@ export function ServerTable({
 
                 )
             case "playerCount":
+                if (isCached) {
+                    return <span className="text-default-500">--</span>;
+                }
                 return (
                     <div className={`flex gap-2 items-center text-${server.playerCountDevelopment === 'stagnant' ?
                         'default-400' :
@@ -286,6 +291,9 @@ export function ServerTable({
                     </div>
                 )
             case "dailyPeak":
+                if (isCached) {
+                    return <span className="text-default-500">--</span>;
+                }
                 return (
                     <div className="flex gap-2 items-center">
                         {cellValue}
@@ -295,6 +303,9 @@ export function ServerTable({
                     </div>
                 )
             case "record":
+                if (isCached) {
+                    return <span className="text-default-500">--</span>;
+                }
                 return (
                     <div className="flex gap-2 items-center">
                         {cellValue}
@@ -307,16 +318,22 @@ export function ServerTable({
                 return (
                     <div className="flex gap-2 justify-end">
                         {canSeePrediction ? (
-                            <Button size="sm" color="secondary" variant="flat" onPress={() => handlePredict(server.internalId, server.server)}>
+                            <Button
+                                size="sm"
+                                color="secondary"
+                                variant="flat"
+                                isDisabled={isCached}
+                                onPress={() => handlePredict(server.internalId, server.server)}
+                            >
                                 Predict
                             </Button>
                         ) : null}
                         {canManageServers ? (
                             <>
-                                <Button size="sm" variant="flat" onPress={() => handleEdit(server.internalId)}>
+                                <Button size="sm" variant="flat" isDisabled={isCached} onPress={() => handleEdit(server.internalId)}>
                                     Edit
                                 </Button>
-                                <Button size="sm" color="danger" variant="flat" onPress={() => handleDelete(server.internalId)}>
+                                <Button size="sm" color="danger" variant="flat" isDisabled={isCached} onPress={() => handleDelete(server.internalId)}>
                                     Delete
                                 </Button>
                             </>
