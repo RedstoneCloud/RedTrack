@@ -51,6 +51,7 @@ export default function Dashboard() {
     const [hiddenServers, setHiddenServers] = useState<Set<string>>(new Set());
     let [backendReachable, setBackendReachable] = useState(true);
     let [backendError, setBackendError] = useState("");
+    const [authError, setAuthError] = useState("");
     let [fromDate, setFromDate] = useState(new Date().getTime() - 60 * 1000 * 60 * 6)
     let [toDate, setToDate] = useState(new Date().getTime());
     let [dateOverridden, setDateOverridden] = useState(false);
@@ -129,6 +130,10 @@ export default function Dashboard() {
     const [customToInput, setCustomToInput] = useState(formatDateTimeLocal(toDate));
     const [rangeError, setRangeError] = useState("");
     const [isCustomRangeEditing, setIsCustomRangeEditing] = useState(false);
+    const [isChartLoading, setIsChartLoading] = useState(true);
+    const [isTableLoading, setIsTableLoading] = useState(true);
+    const hasLoadedChartRef = useRef(false);
+    const hasLoadedTableRef = useRef(false);
 
     useEffect(() => {
         fromDateRef.current = fromDate;
@@ -192,8 +197,17 @@ export default function Dashboard() {
     const maxSelectableDateTime = formatDateTimeLocal(now);
     const fromInputMax = customToInput && customToInput < maxSelectableDateTime ? customToInput : maxSelectableDateTime;
 
-    const fetchChartRange = async (baseUrl: string, sessionToken: string, rangeFrom: number, rangeTo: number) => {
+    const fetchChartRange = async (
+        baseUrl: string,
+        sessionToken: string,
+        rangeFrom: number,
+        rangeTo: number,
+        options: { showLoading?: boolean } = {}
+    ) => {
         const clamped = getClampedRange(rangeFrom, rangeTo);
+        if (options.showLoading) {
+            setIsChartLoading(true);
+        }
         const response = await requestBackend(baseUrl, sessionToken, '/api/stats/range?from=' + clamped.from + '&to=' + clamped.to, {
             method: 'GET',
             headers: {
@@ -203,6 +217,8 @@ export default function Dashboard() {
 
         const dat = await response.json();
         setData((prev: any) => ({ type: prev.type, from: clamped.from, to: clamped.to, ...dat }));
+        hasLoadedChartRef.current = true;
+        setIsChartLoading(false);
     };
 
     const handleRangeShift = async (direction: "prev" | "next") => {
@@ -236,7 +252,7 @@ export default function Dashboard() {
         setToDate(nextTo);
         fromDateRef.current = nextFrom;
         toDateRef.current = nextTo;
-        await fetchChartRange(url, token, nextFrom, nextTo);
+        await fetchChartRange(url, token, nextFrom, nextTo, { showLoading: true });
     };
 
     const handleRangeReset = async () => {
@@ -252,7 +268,7 @@ export default function Dashboard() {
         fromDateRef.current = liveFrom;
         toDateRef.current = liveTo;
         chartRef.current?.resetZoom();
-        await fetchChartRange(url, token, liveFrom, liveTo);
+        await fetchChartRange(url, token, liveFrom, liveTo, { showLoading: true });
     };
 
     const handleLiveRangeChange = async (hours: number) => {
@@ -271,7 +287,7 @@ export default function Dashboard() {
         setToDate(liveTo);
         fromDateRef.current = liveFrom;
         toDateRef.current = liveTo;
-        await fetchChartRange(url, token, liveFrom, liveTo);
+        await fetchChartRange(url, token, liveFrom, liveTo, { showLoading: true });
     };
 
     const handleApplyCustomRange = async () => {
@@ -302,7 +318,7 @@ export default function Dashboard() {
         setToDate(parsedTo);
         fromDateRef.current = parsedFrom;
         toDateRef.current = parsedTo;
-        await fetchChartRange(url, token, parsedFrom, parsedTo);
+        await fetchChartRange(url, token, parsedFrom, parsedTo, { showLoading: true });
     };
 
     const requestBackend = async (activeUrl: string, activeToken: string, path: string, init?: RequestInit) => {
@@ -316,6 +332,11 @@ export default function Dashboard() {
             });
             setBackendReachable(true);
             setBackendError("");
+            if (response.status === 401 || response.status === 403) {
+                setAuthError("Authentication failed for this server. Please re-authenticate.");
+            } else if (response.ok) {
+                setAuthError("");
+            }
             return response;
         } catch (error) {
             setBackendReachable(false);
@@ -577,6 +598,7 @@ export default function Dashboard() {
 
                 setToken(tok)
                 setUrl(ur)
+                setAuthError("");
 
                 if (tok != null && ur != null) {
                     const now = Date.now();
@@ -588,12 +610,18 @@ export default function Dashboard() {
                         setToDate(effectiveTo);
                     }
 
+                    if (!hasLoadedTableRef.current) {
+                        setIsTableLoading(true);
+                    }
                     const response = await requestBackend(ur, tok, "/api/stats/latest", {
                         method: 'GET',
                         headers: {
                             'Content-Type': 'application/json',
                         }
                     });
+                    if (response.status === 401 || response.status === 403) {
+                        return;
+                    }
                     const dat = await response.json();
                     setTableData((prevTableData) => {
                         const tableDataMap = prevTableData && prevTableData.length > 0 ? new Map(prevTableData.map((item) => [item.internalId, item])) : null;
@@ -618,9 +646,11 @@ export default function Dashboard() {
 
                         return updatedData;
                     })
+                    hasLoadedTableRef.current = true;
+                    setIsTableLoading(false);
 
                     if (!dateOverriddenRef.current) {
-                        await fetchChartRange(ur, tok, effectiveFrom, effectiveTo);
+                        await fetchChartRange(ur, tok, effectiveFrom, effectiveTo, { showLoading: !hasLoadedChartRef.current });
                     }
                 }
             }
@@ -673,6 +703,30 @@ export default function Dashboard() {
         }
     }, [currentUser, token, url]);
 
+
+    if (authError) {
+        return (
+            <div className="flex min-h-screen items-center justify-center p-4">
+                <Card className="w-full max-w-xl border border-default-200/60 bg-content1/80 shadow-md backdrop-blur">
+                    <CardHeader className="flex flex-col items-start gap-1">
+                        <h2 className="text-xl font-semibold">Authentication failed</h2>
+                        <p className="text-sm text-default-500">{authError}</p>
+                    </CardHeader>
+                    <CardBody>
+                        <p className="text-sm text-default-500">Return to the server list and re-add or update credentials.</p>
+                    </CardBody>
+                    <CardFooter className="flex gap-2">
+                        <Button variant="flat" onPress={handleBack}>
+                            Back to servers
+                        </Button>
+                        <Button color="primary" onPress={reloadData}>
+                            Retry now
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </div>
+        );
+    }
 
     if (!backendReachable) {
         return (
@@ -742,7 +796,17 @@ export default function Dashboard() {
                     </div>
                 </CardHeader>
                 <CardBody className="h-[280px] md:h-[320px] p-0 overflow-hidden bg-default-100/5">
-                    <OnlinePlayersChart ref={chartRef} data={data} hiddenServers={hiddenServers} />
+                    {isChartLoading ? (
+                        <div className="flex h-full w-full items-center justify-center text-sm text-default-400">
+                            Loading chart...
+                        </div>
+                    ) : Object.values(data?.data || {}).some((server: any) => (server?.pings || []).length > 0) ? (
+                        <OnlinePlayersChart ref={chartRef} data={data} hiddenServers={hiddenServers} />
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center text-sm text-default-400">
+                            No data to display yet.
+                        </div>
+                    )}
                 </CardBody>
                 <CardFooter className="border-t border-default-200/60 bg-default-100/10">
                     <div className="flex w-full flex-col gap-2 text-xs text-default-400">
@@ -842,24 +906,34 @@ export default function Dashboard() {
                         </div>
                     </CardHeader>
                     <CardBody className="p-2 sm:p-4">
-                        <ServerTable
-                            url={url}
-                            token={token}
-                            data={sortedTableData}
-                            canAddServer={canAddServer}
-                            canManageServers={canManageServers}
-                            canSeePrediction={canSeePrediction}
-                            serverDetails={serverDetails}
-                            onServersChanged={() => {
-                                if (url && token && canManageServers) {
-                                    loadServerDetails(url, token);
-                                }
-                                reloadData();
-                            }}
-                            hiddenServers={hiddenServers}
-                            onToggleServer={handleToggleServer}
-                            onToggleAll={handleToggleAll}
-                        />
+                        {isTableLoading ? (
+                            <div className="flex w-full items-center justify-center py-10 text-sm text-default-400">
+                                Loading table...
+                            </div>
+                        ) : sortedTableData.length > 0 ? (
+                            <ServerTable
+                                url={url}
+                                token={token}
+                                data={sortedTableData}
+                                canAddServer={canAddServer}
+                                canManageServers={canManageServers}
+                                canSeePrediction={canSeePrediction}
+                                serverDetails={serverDetails}
+                                onServersChanged={() => {
+                                    if (url && token && canManageServers) {
+                                        loadServerDetails(url, token);
+                                    }
+                                    reloadData();
+                                }}
+                                hiddenServers={hiddenServers}
+                                onToggleServer={handleToggleServer}
+                                onToggleAll={handleToggleAll}
+                            />
+                        ) : (
+                            <div className="flex w-full items-center justify-center py-10 text-sm text-default-400">
+                                No data to display yet.
+                            </div>
+                        )}
                     </CardBody>
                 </Card>
             </div>
