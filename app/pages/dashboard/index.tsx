@@ -797,8 +797,20 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardBody className="h-[280px] md:h-[320px] p-0 overflow-hidden bg-default-100/5">
                     {isChartLoading ? (
-                        <div className="flex h-full w-full items-center justify-center text-sm text-default-400">
-                            Loading chart...
+                        <div className="flex h-full w-full items-center justify-center p-6">
+                            <div className="w-full animate-pulse space-y-3">
+                                <div className="h-3 w-32 rounded-full bg-default-200/60" />
+                                <div className="grid h-[200px] w-full grid-cols-12 gap-2">
+                                    {Array.from({ length: 24 }).map((_, index) => (
+                                        <div
+                                            key={index}
+                                            className="h-full rounded-md bg-default-200/40"
+                                            style={{ opacity: 0.35 + (index % 6) * 0.1 }}
+                                        />
+                                    ))}
+                                </div>
+                                <div className="h-2 w-48 rounded-full bg-default-200/50" />
+                            </div>
                         </div>
                     ) : Object.values(data?.data || {}).some((server: any) => (server?.pings || []).length > 0) ? (
                         <OnlinePlayersChart ref={chartRef} data={data} hiddenServers={hiddenServers} />
@@ -907,8 +919,11 @@ export default function Dashboard() {
                     </CardHeader>
                     <CardBody className="p-2 sm:p-4">
                         {isTableLoading ? (
-                            <div className="flex w-full items-center justify-center py-10 text-sm text-default-400">
-                                Loading table...
+                            <div className="w-full animate-pulse space-y-3 px-2 py-4">
+                                <div className="h-8 w-full rounded-lg bg-default-200/50" />
+                                {Array.from({ length: 6 }).map((_, index) => (
+                                    <div key={index} className="h-10 w-full rounded-lg bg-default-200/40" />
+                                ))}
                             </div>
                         ) : sortedTableData.length > 0 ? (
                             <ServerTable
