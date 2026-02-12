@@ -721,8 +721,9 @@ export default function Dashboard() {
         });
 
         const latestTimeoutMs = 5000;
+        let latestTimeoutId: ReturnType<typeof setTimeout> | null = null;
         const timeoutPromise = new Promise<"timeout">((resolve) => {
-            setTimeout(() => resolve("timeout"), latestTimeoutMs);
+            latestTimeoutId = setTimeout(() => resolve("timeout"), latestTimeoutMs);
         });
 
         const chartPromise = !dateOverriddenRef.current
@@ -730,6 +731,9 @@ export default function Dashboard() {
             : Promise.resolve();
 
         const latestResult = await Promise.race([latestPromise.then(() => "ok" as const), timeoutPromise]);
+        if (latestTimeoutId) {
+            clearTimeout(latestTimeoutId);
+        }
         if (latestResult === "timeout") {
             setIsTableLoading(false);
             setIsTableSlow(true);

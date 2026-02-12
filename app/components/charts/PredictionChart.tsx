@@ -46,7 +46,6 @@ export function PredictionChart({
 
         const minX = Math.min(...dataPoints.map((point) => point.x));
         const maxX = Math.max(...dataPoints.map((point) => point.x));
-        const tension = 0.6;
 
         const maxYValue = Math.max(...dataPoints.map((point) => point.y), 1);
         const stepSize = Math.pow(10, Math.floor(Math.log10(Math.max(1, maxYValue))));
@@ -62,7 +61,6 @@ export function PredictionChart({
                     borderWidth: 3,
                     pointRadius: 0,
                     pointHoverRadius: 4,
-                    tension,
                 },
             ];
 
@@ -95,7 +93,6 @@ export function PredictionChart({
                         borderWidth: 3,
                         pointRadius: 0,
                         pointHoverRadius: 4,
-                        tension,
                     },
                 ],
             },

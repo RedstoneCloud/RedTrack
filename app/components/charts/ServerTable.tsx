@@ -711,16 +711,16 @@ export function ServerTable({
                             {...(column.uid === "chart" ? { className: "w-14" } : column.uid === "actions" ? { className: "text-right" } : {})}
                         >
                             {column.uid === "chart" ? (
-                                <div
-                                    className="flex items-center justify-center cursor-pointer select-none"
-                                    role="button"
+                                <button
+                                    type="button"
+                                    className="flex items-center justify-center cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-default-400"
                                     title={anyChartVisible ? "Hide all from chart" : "Show all on chart"}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onToggleAll?.(allServerNames);
                                     }}
                                 >
-                                    <div
+                                    <span
                                         className="w-3 h-3 rounded-full"
                                         style={{
                                             backgroundColor: anyChartVisible ? "#a3a3a3" : "transparent",
@@ -729,7 +729,7 @@ export function ServerTable({
                                             opacity: anyChartVisible ? 1 : 0.3,
                                         }}
                                     />
-                                </div>
+                                </button>
                             ) : column.name}
                         </TableColumn>
                     )}
