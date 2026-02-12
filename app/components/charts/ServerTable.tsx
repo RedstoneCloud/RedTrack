@@ -155,6 +155,7 @@ export function ServerTable({
         };
     }, [isDarkMode]);
     const predictionLineColor = "#9f74ca";
+    const predictionBackground = "var(--heroui-content1)";
 
     const tableColumns = React.useMemo(() => {
         const columns = [...baseColumns];
@@ -764,8 +765,8 @@ export function ServerTable({
                                 ) : null}
                                 {!isPredicting && !predictionError && predictionSeries.length > 0 ? (
                                     <div
-                                        className="h-80 w-full rounded-xl border border-default-200 p-2"
-                                        style={{ background: chartTheme.background }}
+                                        className="h-80 w-full rounded-xl border border-default-200 p-2 shadow-inner"
+                                        style={{ background: predictionBackground }}
                                     >
                                         <PredictionChart
                                             points={predictionSeries}
