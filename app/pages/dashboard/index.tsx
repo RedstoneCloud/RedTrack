@@ -93,8 +93,8 @@ export default function Dashboard() {
         base: "my-2 sm:my-8",
     };
 
-    const liveRangeOptions = [1, 2, 4, 8, 12, 24] as const;
-    const [liveRangeHours, setLiveRangeHours] = useState<typeof liveRangeOptions[number]>(1);
+    const liveRangeOptions = [1, 2, 4, 8, 12, 24];
+    const [liveRangeHours, setLiveRangeHours] = useState(1);
     const liveRangeMs = liveRangeHours * 60 * 60 * 1000;
     const rangeShiftMs = 2 * 60 * 60 * 1000;
     const pingRate = 10000;
@@ -240,12 +240,16 @@ export default function Dashboard() {
         await fetchChartRange(url, token, liveFrom, liveTo);
     };
 
-    const handleLiveRangeChange = async (hours: typeof liveRangeOptions[number]) => {
-        setLiveRangeHours(hours);
+    const handleLiveRangeChange = async (hours: number) => {
+        const snapped = liveRangeOptions.reduce((closest, option) => {
+            if (Math.abs(option - hours) < Math.abs(closest - hours)) return option;
+            return closest;
+        }, liveRangeOptions[0]);
+        setLiveRangeHours(snapped);
         if (!url || !token || dateOverriddenRef.current) return;
 
         const rangeNow = Date.now();
-        const liveFrom = rangeNow - hours * 60 * 60 * 1000;
+        const liveFrom = rangeNow - snapped * 60 * 60 * 1000;
         const liveTo = rangeNow;
         setFromDate(liveFrom);
         setToDate(liveTo);
@@ -727,17 +731,22 @@ export default function Dashboard() {
                             </Button>
                             <label className="flex items-center gap-2">
                                 <span className="text-blueGray-100">Live window</span>
-                                <select
-                                    className="rounded-small border border-default-300 bg-default-100 px-2 py-1 text-xs text-foreground"
+                                <input
+                                    className="h-2 w-32 cursor-pointer accent-primary"
+                                    type="range"
+                                    min={1}
+                                    max={24}
+                                    step={1}
                                     value={liveRangeHours}
-                                    onChange={(event) => handleLiveRangeChange(Number(event.target.value) as typeof liveRangeOptions[number])}
-                                >
+                                    list="live-range-options"
+                                    onChange={(event) => handleLiveRangeChange(Number(event.target.value))}
+                                />
+                                <datalist id="live-range-options">
                                     {liveRangeOptions.map((hours) => (
-                                        <option key={hours} value={hours}>
-                                            {hours}h
-                                        </option>
+                                        <option key={hours} value={hours} />
                                     ))}
-                                </select>
+                                </datalist>
+                                <span className="text-blueGray-100">{liveRangeHours}h</span>
                             </label>
                             {!isLiveRange ? (
                                 <span className="text-blueGray-100">Custom range</span>
