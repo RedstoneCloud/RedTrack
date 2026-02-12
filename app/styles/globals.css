@@ -50,16 +50,16 @@ body {
   pointer-events: none;
   z-index: 0;
   will-change: transform, opacity;
-  transition: opacity 0.5s ease;
+  transition: opacity 0.25s ease;
 }
 
 .cursor-glow::before {
   content: "";
   position: absolute;
-  width: 550px;
-  height: 550px;
-  top: -275px;
-  left: -275px;
+  width: 256px;
+  height: 256px;
+  top: -128px;
+  left: -128px;
   border-radius: 50%;
   background: radial-gradient(
     circle,
