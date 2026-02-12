@@ -111,16 +111,48 @@ async function pingAll() {
         return !current || typeof current.record !== "number" || typeof current.recordTimestamp !== "number";
     });
 
-    const peakBackfills = new Map<string, { peak: number | null; timestamp: number | null }>();
-    await Promise.all(peakBackfillIds.map(async (serverId) => {
-        peakBackfills.set(serverId, await fetchRollingPeak(serverId));
-    }));
+    const runWithConcurrencyLimit = async <R>(
+        ids: string[],
+        limit: number,
+        fn: (id: string) => Promise<R>
+    ): Promise<Map<string, R>> => {
+        const results = new Map<string, R>();
+        if (ids.length === 0) {
+            return results;
+        }
 
-    const recordBackfills = new Map<string, { record: number | null; timestamp: number | null }>();
-    await Promise.all(recordBackfillIds.map(async (serverId) => {
-        recordBackfills.set(serverId, await fetchRecord(serverId));
-    }));
+        let index = 0;
 
+        const worker = async () => {
+            while (index < ids.length) {
+                const currentIndex = index++;
+                const id = ids[currentIndex];
+                const value = await fn(id);
+                results.set(id, value);
+            }
+        };
+
+        const workers: Promise<void>[] = [];
+        const workerCount = Math.min(limit, ids.length);
+        for (let i = 0; i < workerCount; i++) {
+            workers.push(worker());
+        }
+
+        await Promise.all(workers);
+        return results;
+    };
+
+    const peakBackfills = await runWithConcurrencyLimit(
+        peakBackfillIds,
+        10,
+        fetchRollingPeak
+    );
+
+    const recordBackfills = await runWithConcurrencyLimit(
+        recordBackfillIds,
+        10,
+        fetchRecord
+    );
     const updates = serverIds.map((serverId) => {
         const count = data[serverId];
         const current = existingById.get(serverId);
