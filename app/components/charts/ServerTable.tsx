@@ -509,7 +509,7 @@ export function ServerTable({
             predictions.push({
                 timestamp: futureTimestamp,
                 label: futureDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                predictedPlayers: Math.max(0, Math.round(blended)),
+                predictedPlayers: Math.max(0, blended),
             });
         }
 
@@ -527,7 +527,7 @@ export function ServerTable({
                 detailedPredictions.push({
                     timestamp,
                     label: new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                    predictedPlayers: Math.max(0, Math.round(interpolated)),
+                    predictedPlayers: Math.max(0, interpolated),
                 });
             }
         }

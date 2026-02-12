@@ -47,8 +47,9 @@ export function PredictionChart({
         const minX = Math.min(...dataPoints.map((point) => point.x));
         const maxX = Math.max(...dataPoints.map((point) => point.x));
 
-        const maxYValue = Math.max(...dataPoints.map((point) => point.y), 1);
-        const stepSize = Math.pow(10, Math.floor(Math.log10(Math.max(1, maxYValue))));
+        const stepSize = 1;
+        const maxYValue = Math.max(...dataPoints.map((point) => point.y), 0);
+        const yMax = Math.max(1, maxYValue * 1.2);
 
         if (chartRef.current) {
             const chart = chartRef.current;
@@ -70,10 +71,12 @@ export function PredictionChart({
                 xScale.max = maxX;
             }
 
-            if (chart.options?.scales?.y) {
-                const yScale = chart.options.scales.y as any;
-                yScale.ticks.stepSize = stepSize;
-            }
+                if (chart.options?.scales?.y) {
+                    const yScale = chart.options.scales.y as any;
+                    yScale.min = 0;
+                    yScale.max = yMax;
+                    yScale.ticks.stepSize = stepSize;
+                }
 
             chart.update("none");
             return;
@@ -118,7 +121,10 @@ export function PredictionChart({
                                 if (!timestamp) return "";
                                 return new Date(timestamp).toLocaleString();
                             },
-                            label: (item: any) => `Predicted players: ${item.parsed?.y ?? 0}`,
+                            label: (item: any) => {
+                                const value = Number.isFinite(item.parsed?.y) ? item.parsed.y.toFixed(2) : "0.00";
+                                return `Predicted players: ${value}`;
+                            },
                         },
                     },
                     zoom: {
@@ -140,6 +146,8 @@ export function PredictionChart({
                 },
                 scales: {
                     y: {
+                        min: 0,
+                        max: yMax,
                         ticks: {
                             color: theme.axis,
                             beginAtZero: true,
