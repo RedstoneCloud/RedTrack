@@ -11,4 +11,4 @@ export default model("pings_new", new Schema({
         default: {}
         //serverId : playerCount
     }
-}));
+}).index({ timestamp: 1 }));

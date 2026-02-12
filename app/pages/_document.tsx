@@ -5,7 +5,7 @@ export default function Document() {
         <Html lang="en">
             <title>RedTrack</title>
             <Head />
-            <body className="background-100 min-h-screen h-screen min-w-screen w-screen">
+            <body className="min-h-screen w-full bg-transparent antialiased">
                 <Main />
                 <NextScript />
             </body>

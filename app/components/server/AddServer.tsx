@@ -136,40 +136,50 @@ export function AddServer({
                         <>
                             <ModalHeader className="flex flex-col gap-1">
                                 Add server
+                                <span className="text-sm font-normal text-default-400">Create a new server entry for monitoring.</span>
                             </ModalHeader>
-                            <ModalBody>
+                            <ModalBody className="space-y-3">
                                 {error ? <p className="text-red-500">{error}</p> : null}
-                                <Input
-                                    label="Server Name"
-                                    placeholder="The name of the server"
-                                    variant="bordered"
-                                    onChange={(e) => setServerName(e.target.value)}
-                                    value={serverName}
-                                />
-                                <Input
-                                    label="Server Address"
-                                    placeholder="Enter the server's address, e.g. hivebedrock.network"
-                                    variant="bordered"
-                                    onChange={(e) => setServerIP(e.target.value)}
-                                    value={serverIP}
-                                />
-                                <Input
-                                    label="Port"
-                                    placeholder="Enter the server's port"
-                                    variant="bordered"
-                                    onChange={(e) => setServerPort(e.target.value)}
-                                    value={serverPort}
-                                />
-                                <Checkbox isSelected={isBedrockServer} onValueChange={setIsBedrockServer}>
-                                    Bedrock server (disable for Java)
-                                </Checkbox>
-                                <Input
-                                    type="color"
-                                    label="Server color"
-                                    variant="bordered"
-                                    onChange={(e) => setServerColor(e.target.value)}
-                                    value={serverColor}
-                                />
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <Input
+                                        label="Server Name"
+                                        placeholder="Survival Realm"
+                                        variant="bordered"
+                                        size="sm"
+                                        onChange={(e) => setServerName(e.target.value)}
+                                        value={serverName}
+                                    />
+                                    <Input
+                                        label="Server Address"
+                                        placeholder="hivebedrock.network"
+                                        variant="bordered"
+                                        size="sm"
+                                        onChange={(e) => setServerIP(e.target.value)}
+                                        value={serverIP}
+                                    />
+                                    <Input
+                                        label="Port"
+                                        placeholder="19132"
+                                        variant="bordered"
+                                        size="sm"
+                                        onChange={(e) => setServerPort(e.target.value)}
+                                        value={serverPort}
+                                        description="Default Bedrock: 19132, Java: 25565"
+                                    />
+                                    <div className="flex flex-col gap-2">
+                                        <Checkbox isSelected={isBedrockServer} onValueChange={setIsBedrockServer}>
+                                            Bedrock server (disable for Java)
+                                        </Checkbox>
+                                        <Input
+                                            type="color"
+                                            label="Server color"
+                                            variant="bordered"
+                                            size="sm"
+                                            onChange={(e) => setServerColor(e.target.value)}
+                                            value={serverColor}
+                                        />
+                                    </div>
+                                </div>
                             </ModalBody>
                             <ModalFooter>
                                 <Button color="danger" variant="flat" onPress={onClose} isDisabled={isSubmitting}>

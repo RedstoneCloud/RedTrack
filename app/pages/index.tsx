@@ -169,50 +169,77 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 px-3 pb-4 pt-[max(env(safe-area-inset-top),1rem)] dark:bg-slate-950">
+    <div className="relative flex min-h-screen w-full items-center justify-center px-4 pb-6 pt-[max(env(safe-area-inset-top),1rem)]">
       {
         page === 0 ? (
-          <Card className={"page-card"}>
+          <Card className="page-card border border-default-200/60 bg-content1/80 backdrop-blur">
             <CardHeader className="flex flex-col items-center gap-3">
               <Image src={`${publicAssetPrefix}/logo.png`} alt="logo" width={128} height={128} className="rounded-lg" />
-              <h1 className="font-bold text-large">RedTrack</h1>
+              <div className="text-center">
+                <h1 className="text-2xl font-semibold">RedTrack</h1>
+                <p className="text-sm text-default-400">Monitor players and manage servers in one place.</p>
+              </div>
             </CardHeader>
-            <CardBody className="px-3 py-0 text-medium text-default-400">
-              <p>
+            <CardBody className="space-y-3 px-3 py-0 text-sm text-default-400">
+              <p className="text-default-500">
                 Welcome to <strong>RedTrack</strong>.
                 To get started, please select or add a new server below.
               </p>
 
-              <div className={"mt-2 flex max-h-[35vh] flex-col gap-2 overflow-y-auto pr-1"}>
-                {
-                  servers.map((server: any, index: any) => (
-                    <div className="inline-flex gap-2" key={index}>
-                      <Button key={index} variant="bordered" className="w-full justify-start" onClick={() => {
-                        router.push("/dashboard?server=" + index);
-                      }}>
-                        <div className='flex flex-col items-start text-left'>
-                          <span className='font-semibold'>{resolveServerName(server)}</span>
-                          <span className='text-xs text-default-500'>{server.url}</span>
+              {servers.length === 0 ? (
+                <div className="rounded-xl border border-default-200/60 bg-default-100/10 p-4 text-sm text-default-500">
+                  No servers saved yet. Add one to start tracking live players.
+                </div>
+              ) : (
+                <div className="mt-2 flex max-h-[35vh] flex-col gap-2 overflow-y-auto pr-1">
+                  {servers.map((server: any, index: any) => (
+                    <div className="flex gap-2" key={index}>
+                      <Button
+                        key={index}
+                        variant="flat"
+                        className="w-full justify-start bg-default-100/10 hover:bg-default-100/20"
+                        onClick={() => {
+                          router.push("/dashboard?server=" + index);
+                        }}
+                      >
+                        <div className="flex flex-col items-start text-left">
+                          <span className="font-semibold text-foreground">{resolveServerName(server)}</span>
+                          <span className="text-xs text-default-500">{server.url}</span>
                         </div>
                       </Button>
-                      <Button key={"edit" + index} variant="flat" className="min-w-10" onClick={() => {
-                        openEditForm(server, index);
-                      }}>
-                        <PencilIcon width={20} />
+                      <Button
+                        key={"edit" + index}
+                        variant="flat"
+                        className="min-w-10 self-stretch"
+                        isIconOnly
+                        onClick={() => {
+                          openEditForm(server, index);
+                        }}
+                        aria-label="Edit server"
+                      >
+                        <PencilIcon width={18} />
                       </Button>
-                      <Button key={"del" + index} variant="flat" color="danger" className="min-w-10" onClick={() => {
-                        deleteServer(index);
-                      }}>
-                        <TrashIcon width={25} />
+                      <Button
+                        key={"del" + index}
+                        variant="flat"
+                        color="danger"
+                        className="min-w-10 self-stretch"
+                        isIconOnly
+                        onClick={() => {
+                          deleteServer(index);
+                        }}
+                        aria-label="Delete server"
+                      >
+                        <TrashIcon width={20} />
                       </Button>
                     </div>
-                  ))
-                }
-              </div>
+                  ))}
+                </div>
+              )}
             </CardBody>
-            <CardFooter>
-              <div className='flex w-full gap-2'>
-                <Button color="default" className="w-full" startContent={<PlusIcon />} variant="faded" onClick={openCreateForm}>
+            <CardFooter className="px-3">
+              <div className="flex w-full items-center gap-2 pr-1">
+                <Button color="primary" className="w-full" startContent={<PlusIcon />} variant="shadow" onClick={openCreateForm}>
                   Add new server
                 </Button>
                 <Button
@@ -220,7 +247,7 @@ export default function Home() {
                     href="https://discord.gg/cTNTrQsJSx"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className='w-1/6'
+                    className="min-w-10"
                     variant='ghost'
                     color='default'
                     isIconOnly
@@ -233,7 +260,7 @@ export default function Home() {
                     href="https://github.com/RedstoneCloud/RedTrack"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className='w-1/6'
+                    className="min-w-10"
                     variant='ghost'
                     color='default'
                     isIconOnly
@@ -249,19 +276,22 @@ export default function Home() {
 
       {
         page === 1 ? (
-            <Card className={"page-card"}>
+            <Card className="page-card border border-default-200/60 bg-content1/80 backdrop-blur">
               <CardHeader className="flex flex-col items-center gap-3">
                 <Image src={`${publicAssetPrefix}/logo.png`} alt="logo" width={112} height={112} className="rounded-lg"/>
-                <h1 className="font-bold text-large">{editingIndex === null ? "Add server" : "Edit server"}</h1>
+                <div className="text-center">
+                  <h1 className="text-2xl font-semibold">{editingIndex === null ? "Add server" : "Edit server"}</h1>
+                  <p className="text-sm text-default-400">Connect your backend to start monitoring live players.</p>
+                </div>
               </CardHeader>
               <CardBody>
                 <Form
                     onSubmit={handleSubmit}
                     id={"addform"}
                     validationBehavior="native"
-                    className="flex flex-col py-2"
+                    className="flex flex-col gap-3 py-2"
                 >
-                  <p className="text-danger">
+                  <p className="text-sm text-danger">
                     {loginError}
                   </p>
                   <Input
@@ -274,7 +304,7 @@ export default function Home() {
                       errorMessage="Please enter a valid backend address"
                       labelPlacement="outside"
                       disabled={submitting}
-                      className="border-25 border-black"/>
+                      variant="bordered"/>
 
                   <Input
                       type="text"
@@ -285,7 +315,7 @@ export default function Home() {
                   placeholder="My Production"
                   labelPlacement="outside"
                   disabled={submitting}
-                  className="border-25 border-black" />
+                  variant="bordered" />
 
                 <div className='flex flex-col gap-2 sm:flex-row sm:justify-between'>
                   <Input
@@ -298,7 +328,7 @@ export default function Home() {
                     errorMessage="Please enter a username"
                     labelPlacement="outside"
                     disabled={submitting}
-                    className="border-25 border-black" />
+                    variant="bordered" />
 
                   <Input
                     type="password"
@@ -310,12 +340,12 @@ export default function Home() {
                     errorMessage="Please enter a password"
                     labelPlacement="outside"
                     disabled={submitting}
-                    className="border-25 border-black" />
+                    variant="bordered" />
                 </div>
               </Form>
             </CardBody>
             <CardFooter className='flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-between'>
-              <Button className='w-full sm:w-auto' type="submit" onClick={() => (document.getElementById("addform") as HTMLFormElement).requestSubmit()} variant="flat" color="success" disabled={submitting}>
+              <Button className="w-full sm:w-auto" type="submit" onClick={() => (document.getElementById("addform") as HTMLFormElement).requestSubmit()} variant="shadow" color="primary" disabled={submitting}>
                 {submitting ? "Loading..." : editingIndex === null ? "Submit" : "Save changes"}
               </Button>
 

@@ -22,16 +22,7 @@ import {
     ModalFooter,
     Checkbox,
 } from "@heroui/react";
-import {
-    ResponsiveContainer,
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Legend,
-    Tooltip as RechartsTooltip,
-} from "recharts";
+import { PredictionChart } from "./PredictionChart";
 
 import { AddServer } from "../server/AddServer";
 
@@ -69,6 +60,8 @@ export function ServerTable({
     onServersChanged,
     hiddenServers,
     onToggleServer,
+    isCached = false,
+    onToggleAll,
 }: {
     url: string | null,
     token: string,
@@ -80,6 +73,8 @@ export function ServerTable({
     onServersChanged: () => void;
     hiddenServers?: Set<string>;
     onToggleServer?: (serverName: string) => void;
+    isCached?: boolean;
+    onToggleAll?: (allServerNames: string[]) => void;
 }) {
     const [filterValue, setFilterValue] = React.useState("");
     const [visibleColumns, setVisibleColumns] = React.useState(new Set(INITIAL_VISIBLE_COLUMNS));
@@ -102,7 +97,7 @@ export function ServerTable({
     const [isPredicting, setIsPredicting] = React.useState(false);
     const [isDarkMode, setIsDarkMode] = React.useState(true);
 
-    const rowsPerPage = 6;
+    const [rowsPerPage, setRowsPerPage] = React.useState(6);
 
     const hasSearchFilter = Boolean(filterValue);
 
@@ -159,6 +154,8 @@ export function ServerTable({
             line: "#2563eb",
         };
     }, [isDarkMode]);
+    const predictionLineColor = "#9f74ca";
+    const predictionBackground = "color-mix(in rgb, var(--heroui-content1) 82%, #000000 18%)";
 
     const tableColumns = React.useMemo(() => {
         const columns = [...baseColumns];
@@ -168,12 +165,16 @@ export function ServerTable({
         return columns;
     }, [canManageServers, canSeePrediction]);
 
+    const allServerNames = React.useMemo(() => data.map((s: any) => s.server), [data]);
+    const anyChartVisible = allServerNames.length > 0 && allServerNames.some((name: string) => !hiddenServers?.has(name));
+
     const headerColumns = React.useMemo(() => {
         // @ts-ignore
-        if (visibleColumns === "all") return tableColumns;
+        if (visibleColumns === "all") return tableColumns.map(c => ({ ...c }));
 
-        return tableColumns.filter((column) => Array.from(visibleColumns).includes(column.uid));
-    }, [visibleColumns, tableColumns]);
+        return tableColumns.filter((column) => Array.from(visibleColumns).includes(column.uid)).map(c => ({ ...c }));
+        // anyChartVisible is included to force HeroUI to re-render column headers when toggle-all state changes
+    }, [visibleColumns, tableColumns, anyChartVisible]);
 
     const filteredItems = React.useMemo(() => {
         let filteredData = [...data];
@@ -269,6 +270,9 @@ export function ServerTable({
 
                 )
             case "playerCount":
+                if (isCached) {
+                    return <span className="text-default-500">--</span>;
+                }
                 return (
                     <div className={`flex gap-2 items-center text-${server.playerCountDevelopment === 'stagnant' ?
                         'default-400' :
@@ -280,6 +284,9 @@ export function ServerTable({
                     </div>
                 )
             case "dailyPeak":
+                if (isCached) {
+                    return <span className="text-default-500">--</span>;
+                }
                 return (
                     <div className="flex gap-2 items-center">
                         {cellValue}
@@ -289,6 +296,9 @@ export function ServerTable({
                     </div>
                 )
             case "record":
+                if (isCached) {
+                    return <span className="text-default-500">--</span>;
+                }
                 return (
                     <div className="flex gap-2 items-center">
                         {cellValue}
@@ -299,18 +309,24 @@ export function ServerTable({
                 )
             case "actions":
                 return (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 justify-end">
                         {canSeePrediction ? (
-                            <Button size="sm" color="secondary" variant="flat" onPress={() => handlePredict(server.internalId, server.server)}>
+                            <Button
+                                size="sm"
+                                color="secondary"
+                                variant="flat"
+                                isDisabled={isCached}
+                                onPress={() => handlePredict(server.internalId, server.server)}
+                            >
                                 Predict
                             </Button>
                         ) : null}
                         {canManageServers ? (
                             <>
-                                <Button size="sm" variant="flat" onPress={() => handleEdit(server.internalId)}>
+                                <Button size="sm" variant="flat" isDisabled={isCached} onPress={() => handleEdit(server.internalId)}>
                                     Edit
                                 </Button>
-                                <Button size="sm" color="danger" variant="flat" onPress={() => handleDelete(server.internalId)}>
+                                <Button size="sm" color="danger" variant="flat" isDisabled={isCached} onPress={() => handleDelete(server.internalId)}>
                                     Delete
                                 </Button>
                             </>
@@ -361,7 +377,7 @@ export function ServerTable({
             return;
         }
 
-        const points = (Array.isArray(json.points) ? json.points : [])
+        const rawPoints = (Array.isArray(json.points) ? json.points : [])
             .map((point: any) => ({
                 timestamp: Number(point.timestamp),
                 count: Number(point.count),
@@ -370,6 +386,34 @@ export function ServerTable({
                 Number.isFinite(point.timestamp) && Number.isFinite(point.count),
             )
             .sort((a: { timestamp: number; }, b: { timestamp: number; }) => a.timestamp - b.timestamp);
+
+        const minuteBuckets = new Map<number, { timestamp: number; count: number; n: number }>();
+        for (const point of rawPoints) {
+            const minuteKey = Math.floor(point.timestamp / 60000);
+            const existingBucket = minuteBuckets.get(minuteKey);
+
+            if (!existingBucket) {
+                minuteBuckets.set(minuteKey, {
+                    timestamp: point.timestamp,
+                    count: point.count,
+                    n: 1,
+                });
+            } else {
+                const newN = existingBucket.n + 1;
+                const newCount =
+                    (existingBucket.count * existingBucket.n + point.count) / newN;
+
+                minuteBuckets.set(minuteKey, {
+                    timestamp: point.timestamp,
+                    count: newCount,
+                    n: newN,
+                });
+            }
+        }
+
+        const points = Array.from(minuteBuckets.values())
+            .map(({ timestamp, count }) => ({ timestamp, count }))
+            .sort((a, b) => a.timestamp - b.timestamp);
 
         const minimumCoverageMs = 24 * 60 * 60 * 1000;
 
@@ -387,18 +431,34 @@ export function ServerTable({
         }
 
         const now = Date.now();
-        const recentWindowMs = 6 * 60 * 60 * 1000;
+        const recentWindowMs = 12 * 60 * 60 * 1000;
         const recentPoints = points.filter((point: { timestamp: number; }) => point.timestamp >= now - recentWindowMs);
 
-        const fallbackRecentAverage = points.reduce((sum: number, point: { count: number; }) => sum + point.count, 0) / points.length;
+        const overallAverage = points.reduce((sum: number, point: { count: number; }) => sum + point.count, 0) / points.length;
         const recentAverage = recentPoints.length > 0
             ? recentPoints.reduce((sum: number, point: { count: number; }) => sum + point.count, 0) / recentPoints.length
-            : fallbackRecentAverage;
+            : overallAverage;
 
-        const firstRecent = recentPoints[0] || points[Math.max(0, points.length - 2)];
-        const lastRecent = recentPoints[recentPoints.length - 1] || points[points.length - 1];
-        const recentDurationHours = Math.max(1, (lastRecent.timestamp - firstRecent.timestamp) / (60 * 60 * 1000));
-        const trendPerHour = (lastRecent.count - firstRecent.count) / recentDurationHours;
+        const trendPerHour = (() => {
+            if (recentPoints.length < 2) return 0;
+            const start = recentPoints[0].timestamp;
+            let sumX = 0;
+            let sumY = 0;
+            let sumXY = 0;
+            let sumXX = 0;
+            for (const point of recentPoints) {
+                const x = (point.timestamp - start) / (60 * 60 * 1000);
+                const y = point.count;
+                sumX += x;
+                sumY += y;
+                sumXY += x * y;
+                sumXX += x * x;
+            }
+            const n = recentPoints.length;
+            const denom = n * sumXX - sumX * sumX;
+            if (denom === 0) return 0;
+            return (n * sumXY - sumX * sumY) / denom;
+        })();
 
         const groupedByHour = points.reduce((acc: Record<number, number[]>, point: { timestamp: number; count: number; }) => {
             const hour = new Date(point.timestamp).getHours();
@@ -452,22 +512,49 @@ export function ServerTable({
             const futureDay = futureDate.getDay();
             const futureHour = futureDate.getHours();
             const dayHourKey = `${futureDay}-${futureHour}`;
+            const dayHourValues = groupedByDayHour[dayHourKey] || [];
             const dayHourBaseline = dayHourAverage[dayHourKey];
-            const hourBaseline = hourlyAverage[futureHour] ?? recentAverage;
-            const baseline = dayHourBaseline ?? hourBaseline;
+            const hourBaseline = hourlyAverage[futureHour];
+            const dayHourWeight = Math.min(0.7, dayHourValues.length / 10);
+            const hourWeight = 0.2;
+            const overallWeight = 1 - dayHourWeight - hourWeight;
+            const baseline =
+                (dayHourBaseline ?? hourBaseline ?? overallAverage) * dayHourWeight +
+                (hourBaseline ?? overallAverage) * hourWeight +
+                overallAverage * overallWeight;
             const trendComponent = trendPerHour * (hourOffset + 1);
-            const blended = (baseline * 0.8) + ((recentAverage + trendComponent) * 0.2);
+            const blended = (baseline * 0.75) + ((recentAverage + trendComponent) * 0.25);
 
             predictions.push({
                 timestamp: futureTimestamp,
                 label: futureDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                predictedPlayers: Math.max(0, Math.round(blended)),
+                predictedPlayers: Math.max(0, blended),
             });
         }
 
-        setPredictionSeries(predictions);
+        const detailedPredictions: PredictionPoint[] = [];
+        const stepMs = 15 * 60 * 1000;
+        for (let i = 0; i < predictions.length; i++) {
+            const current = predictions[i];
+            const next = predictions[i + 1];
+            detailedPredictions.push(current);
+            if (!next) continue;
+            const delta = next.predictedPlayers - current.predictedPlayers;
+            for (let step = 1; step <= 3; step++) {
+                const timestamp = current.timestamp + step * stepMs;
+                const interpolated = current.predictedPlayers + (delta * step) / 4;
+                detailedPredictions.push({
+                    timestamp,
+                    label: new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                    predictedPlayers: Math.max(0, interpolated),
+                });
+            }
+        }
+
+        setPredictionSeries(detailedPredictions);
         setIsPredicting(false);
     };
+
 
     const handleDelete = async (serverId: string) => {
         if (!url) return;
@@ -534,12 +621,13 @@ export function ServerTable({
     const topContent = React.useMemo(() => {
         return (
             <div className="flex flex-col gap-4">
-                <div className="flex justify-between gap-3 items-end">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <Input
                         isClearable
-                        className="w-full sm:max-w-[15%]"
+                        className="w-full sm:max-w-xs"
                         placeholder="Search..."
                         startContent={<SearchIcon />}
+                        size="sm"
                         value={filterValue}
                         onClear={() => onClear()}
                         onValueChange={onSearchChange}
@@ -596,9 +684,26 @@ export function ServerTable({
                     total={pages}
                     onChange={setPage}
                 />
+                <label className="flex items-center gap-2 text-small text-default-400">
+                    Rows
+                    <select
+                        className="rounded-md border border-default-200 bg-transparent px-2 py-1 text-small text-default-500 outline-none"
+                        value={rowsPerPage}
+                        onChange={(e) => {
+                            setRowsPerPage(Number(e.target.value));
+                            setPage(1);
+                        }}
+                    >
+                        <option value={6}>6</option>
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                    </select>
+                </label>
             </div>
         );
-    }, [items.length, page, pages, hasSearchFilter]);
+    }, [items.length, page, pages, hasSearchFilter, rowsPerPage]);
 
     return (
         <>
@@ -608,7 +713,7 @@ export function ServerTable({
                 bottomContent={bottomContent}
                 bottomContentPlacement="outside"
                 classNames={{
-                    wrapper: "max-h-[382px]",
+                    wrapper: "max-h-[382px] border border-default-200/60 bg-content1/60 shadow-sm",
                 }}
                 // @ts-ignore
                 sortDescriptor={sortDescriptor}
@@ -622,9 +727,29 @@ export function ServerTable({
                         <TableColumn
                             key={column.uid}
                             allowsSorting={column.sortable}
-                            {...(column.uid === "chart" ? { className: "w-14" } : {})}
+                            {...(column.uid === "chart" ? { className: "w-14" } : column.uid === "actions" ? { className: "text-right" } : {})}
                         >
-                            {column.name}
+                            {column.uid === "chart" ? (
+                                <button
+                                    type="button"
+                                    className="flex items-center justify-center cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-default-400"
+                                    title={anyChartVisible ? "Hide all from chart" : "Show all on chart"}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onToggleAll?.(allServerNames);
+                                    }}
+                                >
+                                    <span
+                                        className="w-3 h-3 rounded-full"
+                                        style={{
+                                            backgroundColor: anyChartVisible ? "#a3a3a3" : "transparent",
+                                            boxShadow: anyChartVisible ? "0 0 6px #a3a3a3" : "none",
+                                            border: "2.5px solid #a3a3a3",
+                                            opacity: anyChartVisible ? 1 : 0.3,
+                                        }}
+                                    />
+                                </button>
+                            ) : column.name}
                         </TableColumn>
                     )}
                 </TableHeader>
@@ -649,7 +774,7 @@ export function ServerTable({
                 <ModalContent>
                     {(onClose) => (
                         <>
-                            <ModalHeader className="flex flex-col gap-1">Prediction for {predictionTarget?.name}<span className="text-sm font-normal text-default-400">Next 24 full hours (hourly)</span></ModalHeader>
+                            <ModalHeader className="flex flex-col gap-1">Prediction for {predictionTarget?.name}<span className="text-sm font-normal text-default-400">Next 24 hours (15-min steps)</span></ModalHeader>
                             <ModalBody>
                                 {isPredicting ? <p className="text-default-500">Calculating prediction...</p> : null}
                                 {!isPredicting && predictionError ? <p className="text-red-500">{predictionError}</p> : null}
@@ -657,44 +782,23 @@ export function ServerTable({
                                     <p className="text-xs text-default-400">Experimental feature: this chart is only an estimate and may differ from actual player counts.</p>
                                 ) : null}
                                 {!isPredicting && !predictionError && predictionSeries.length > 0 ? (
-                                    <div className="h-80 w-full rounded-xl border border-default-200 p-2" style={{ background: chartTheme.background }}>
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <LineChart data={predictionSeries} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
-                                                <XAxis dataKey="label" interval={2} minTickGap={20} tick={{ fill: chartTheme.axis, fontSize: 12 }} />
-                                                <YAxis allowDecimals={false} tick={{ fill: chartTheme.axis, fontSize: 12 }} />
-                                                <RechartsTooltip
-                                                    contentStyle={{
-                                                        backgroundColor: chartTheme.tooltipBg,
-                                                        borderColor: chartTheme.tooltipBorder,
-                                                        color: chartTheme.tooltipText,
-                                                        borderRadius: 10,
-                                                    }}
-                                                    labelStyle={{ color: chartTheme.tooltipText }}
-                                                    formatter={(value: number | string) => [String(value), "Predicted players"]}
-                                                    labelFormatter={(_, payload: any[]) =>
-                                                        payload?.[0]?.payload?.timestamp
-                                                            ? new Date(payload[0].payload.timestamp).toLocaleString()
-                                                            : ""
-                                                    }
-                                                />
-                                                <Legend wrapperStyle={{ color: chartTheme.axis }} />
-                                                <Line
-                                                    type="monotone"
-                                                    dataKey="predictedPlayers"
-                                                    name="Predicted players"
-                                                    stroke={chartTheme.line}
-                                                    strokeWidth={3}
-                                                    dot={false}
-                                                    activeDot={{ r: 5 }}
-                                                />
-                                            </LineChart>
-                                        </ResponsiveContainer>
+                                    <div
+                                        className="h-80 w-full rounded-xl border border-default-200 p-2 shadow-inner"
+                                        style={{
+                                            backgroundColor: predictionBackground,
+                                            boxShadow: "inset 0 0 0 9999px rgba(0,0,0,0.26)",
+                                        }}
+                                    >
+                                        <PredictionChart
+                                            points={predictionSeries}
+                                            lineColor={predictionLineColor}
+                                            theme={chartTheme}
+                                        />
                                     </div>
                                 ) : null}
                             </ModalBody>
                             <ModalFooter>
-                                <Button color="primary" variant="flat" onPress={onClose}>Close</Button>
+                                <Button color="danger" variant="flat" onPress={onClose}>Close</Button>
                             </ModalFooter>
                         </>
                     )}
