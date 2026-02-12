@@ -403,18 +403,34 @@ export function ServerTable({
         }
 
         const now = Date.now();
-        const recentWindowMs = 6 * 60 * 60 * 1000;
+        const recentWindowMs = 12 * 60 * 60 * 1000;
         const recentPoints = points.filter((point: { timestamp: number; }) => point.timestamp >= now - recentWindowMs);
 
-        const fallbackRecentAverage = points.reduce((sum: number, point: { count: number; }) => sum + point.count, 0) / points.length;
+        const overallAverage = points.reduce((sum: number, point: { count: number; }) => sum + point.count, 0) / points.length;
         const recentAverage = recentPoints.length > 0
             ? recentPoints.reduce((sum: number, point: { count: number; }) => sum + point.count, 0) / recentPoints.length
-            : fallbackRecentAverage;
+            : overallAverage;
 
-        const firstRecent = recentPoints[0] || points[Math.max(0, points.length - 2)];
-        const lastRecent = recentPoints[recentPoints.length - 1] || points[points.length - 1];
-        const recentDurationHours = Math.max(1, (lastRecent.timestamp - firstRecent.timestamp) / (60 * 60 * 1000));
-        const trendPerHour = (lastRecent.count - firstRecent.count) / recentDurationHours;
+        const trendPerHour = (() => {
+            if (recentPoints.length < 2) return 0;
+            const start = recentPoints[0].timestamp;
+            let sumX = 0;
+            let sumY = 0;
+            let sumXY = 0;
+            let sumXX = 0;
+            for (const point of recentPoints) {
+                const x = (point.timestamp - start) / (60 * 60 * 1000);
+                const y = point.count;
+                sumX += x;
+                sumY += y;
+                sumXY += x * y;
+                sumXX += x * x;
+            }
+            const n = recentPoints.length;
+            const denom = n * sumXX - sumX * sumX;
+            if (denom === 0) return 0;
+            return (n * sumXY - sumX * sumY) / denom;
+        })();
 
         const groupedByHour = points.reduce((acc: Record<number, number[]>, point: { timestamp: number; count: number; }) => {
             const hour = new Date(point.timestamp).getHours();
@@ -468,11 +484,18 @@ export function ServerTable({
             const futureDay = futureDate.getDay();
             const futureHour = futureDate.getHours();
             const dayHourKey = `${futureDay}-${futureHour}`;
+            const dayHourValues = groupedByDayHour[dayHourKey] || [];
             const dayHourBaseline = dayHourAverage[dayHourKey];
-            const hourBaseline = hourlyAverage[futureHour] ?? recentAverage;
-            const baseline = dayHourBaseline ?? hourBaseline;
+            const hourBaseline = hourlyAverage[futureHour];
+            const dayHourWeight = Math.min(0.7, dayHourValues.length / 10);
+            const hourWeight = 0.2;
+            const overallWeight = 1 - dayHourWeight - hourWeight;
+            const baseline =
+                (dayHourBaseline ?? hourBaseline ?? overallAverage) * dayHourWeight +
+                (hourBaseline ?? overallAverage) * hourWeight +
+                overallAverage * overallWeight;
             const trendComponent = trendPerHour * (hourOffset + 1);
-            const blended = (baseline * 0.8) + ((recentAverage + trendComponent) * 0.2);
+            const blended = (baseline * 0.75) + ((recentAverage + trendComponent) * 0.25);
 
             predictions.push({
                 timestamp: futureTimestamp,
