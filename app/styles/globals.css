@@ -24,6 +24,11 @@ body {
   text-rendering: optimizeLegibility;
   accent-color: #78cf30;
   color-scheme: dark;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .app-shell {
@@ -33,6 +38,85 @@ body {
     radial-gradient(900px 500px at 90% 0%, rgba(176, 100, 79, 0.18), transparent 55%),
     radial-gradient(800px 400px at 70% 120%, rgba(120, 207, 48, 0.12), transparent 60%),
     linear-gradient(180deg, rgba(11, 13, 15, 0.95), rgba(8, 10, 12, 0.98));
+}
+
+/* ── Cursor-following glow ── */
+.cursor-glow {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform, opacity;
+  transition: opacity 0.5s ease;
+}
+
+.cursor-glow::before {
+  content: "";
+  position: absolute;
+  width: 550px;
+  height: 550px;
+  top: -275px;
+  left: -275px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.035) 0%,
+    rgba(255, 255, 255, 0.012) 40%,
+    transparent 70%
+  );
+}
+
+/* ── Click pulse ring ── */
+.cursor-pulse {
+  position: fixed;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.cursor-pulse::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0);
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 0;
+}
+
+.cursor-pulse-animate::before {
+  animation: cursor-pulse-ring 0.6s ease-out forwards;
+}
+
+@keyframes cursor-pulse-ring {
+  0% {
+    width: 0;
+    height: 0;
+    border-color: rgba(255, 255, 255, 0.2);
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    width: 60px;
+    height: 60px;
+    border-color: rgba(255, 255, 255, 0);
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor-glow,
+  .cursor-pulse {
+    display: none;
+  }
 }
 
 .page-card {
